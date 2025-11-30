@@ -1,9 +1,31 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Bell, Search, X, User, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { currentUser, warnings } from '@/lib/data';
+import React, { useMemo, useState } from 'react';
+import { 
+  Bell, 
+  Search, 
+  X, 
+  User, 
+  Settings, 
+  LogOut, 
+  ChevronDown,
+  Users,
+  MapPin,
+  Building2,
+  FileText,
+} from 'lucide-react';
+import { currentUser, warnings, routeStudents, routes, applications, billingData } from '@/lib/data';
+import { companies } from '@/lib/frieslandData';
 import { ViewType } from '@/types';
+
+type SearchResult = {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  view: ViewType;
+  icon: React.ComponentType<{ className?: string }>;
+};
 
 interface HeaderProps {
   setCurrentView: (view: ViewType) => void;
@@ -13,27 +35,173 @@ export default function Header({ setCurrentView }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return [];
+
+    const results: SearchResult[] = [];
+
+    // Schüler (Route-Ansicht)
+    routeStudents.forEach((student) => {
+      const haystack = `${student.name} ${student.id} ${student.school}`.toLowerCase();
+      if (haystack.includes(query)) {
+        results.push({
+          id: `student-${student.id}`,
+          title: student.name,
+          subtitle: `${student.school} • Klasse ${student.class}`,
+          badge: 'Schüler',
+          view: 'students',
+          icon: Users,
+        });
+      }
+    });
+
+    // Routen
+    routes.forEach((route) => {
+      const haystack = `${route.name} ${route.id} ${route.company}`.toLowerCase();
+      if (haystack.includes(query)) {
+        results.push({
+          id: `route-${route.id}`,
+          title: route.name,
+          subtitle: `${route.company} • ${route.type === 'oepnv' ? 'ÖPNV' : 'Freistellung'}`,
+          badge: 'Route',
+          view: 'routes',
+          icon: MapPin,
+        });
+      }
+    });
+
+    // Anträge
+    applications.forEach((application) => {
+      const haystack = `${application.studentName} ${application.school} ${application.id}`.toLowerCase();
+      if (haystack.includes(query)) {
+        results.push({
+          id: `application-${application.id}`,
+          title: application.studentName,
+          subtitle: `${application.school} • Antrag ${application.id}`,
+          badge: 'Antrag',
+          view: 'applications',
+          icon: FileText,
+        });
+      }
+    });
+
+    // Unternehmen (aus Stammdaten)
+    companies.forEach((company, index) => {
+      const haystack = `${company.name} ${company.city}`.toLowerCase();
+      if (haystack.includes(query)) {
+        results.push({
+          id: `company-${index}`,
+          title: company.name,
+          subtitle: `${company.city} • ${company.fleet.buses + company.fleet.taxisStandard + company.fleet.taxisAccessible} Fahrzeuge`,
+          badge: 'Unternehmen',
+          view: 'contracts',
+          icon: Building2,
+        });
+      }
+    });
+
+    // Abrechnungseinträge (Unternehmenssicht)
+    billingData.forEach((entry) => {
+      const haystack = `${entry.company} ${entry.service} ${entry.month}`.toLowerCase();
+      if (haystack.includes(query)) {
+        results.push({
+          id: `billing-${entry.id}`,
+          title: entry.company,
+          subtitle: `${entry.service} • ${entry.month}`,
+          badge: 'Abrechnung',
+          view: 'billing',
+          icon: Building2,
+        });
+      }
+    });
+
+    return results.slice(0, 12);
+  }, [searchQuery]);
+
+  const handleSelectResult = (result: SearchResult) => {
+    setCurrentView(result.view);
+    setSearchQuery('');
+    setShowSearchResults(false);
+    setShowNotifications(false);
+    setShowProfileMenu(false);
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 relative">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="relative">
+          <div className="relative w-80">
             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(true);
+              }}
+              onFocus={() => setShowSearchResults(true)}
+              onBlur={() => setTimeout(() => setShowSearchResults(false), 120)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchResults.length > 0) {
+                  e.preventDefault();
+                  handleSelectResult(searchResults[0]);
+                }
+              }}
               placeholder="Suchen nach Schüler, Route, Unternehmen..."
               className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-80 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
             />
             {searchQuery && (
               <button 
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearchResults(false);
+                }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="w-4 h-4" />
               </button>
+            )}
+
+            {showSearchResults && (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-80 overflow-auto">
+                {searchQuery.trim().length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-500">Tippe, um nach Schülern, Routen oder Unternehmen zu suchen</div>
+                ) : searchResults.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-500">Keine Treffer gefunden</div>
+                ) : (
+                  <div className="py-1">
+                    {searchResults.map((result) => {
+                      const Icon = result.icon;
+                      return (
+                        <button
+                          key={result.id}
+                          className="w-full px-4 py-2.5 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            handleSelectResult(result);
+                          }}
+                        >
+                          <div className="p-2 rounded-lg bg-gray-100 text-gray-600">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{result.title}</p>
+                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 font-semibold uppercase tracking-wide">
+                                {result.badge}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
