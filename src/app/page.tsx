@@ -184,7 +184,7 @@ export default function Home() {
             <p className="text-sm text-gray-500 mb-2">Bitte mit Behörden-Account anmelden.</p>
             <div className="mb-4 p-2 bg-cyan-50 border border-cyan-100 rounded-lg">
               <p className="text-xs text-cyan-700 font-medium">
-                ℹ️ Demo-Modus: Beliebige E-Mail und Passwort eingeben
+                ℹ️ Demo-Modus: Beliebige Zugangsdaten eingeben
               </p>
             </div>
             <form className="space-y-4" onSubmit={handleLogin}>
