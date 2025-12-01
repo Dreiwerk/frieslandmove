@@ -181,7 +181,12 @@ export default function Home() {
           </div>
           <div className="p-8 bg-white">
             <h1 className="text-xl font-bold text-gray-900 mb-1">Anmeldung</h1>
-            <p className="text-sm text-gray-500 mb-6">Bitte mit Behörden-Account anmelden.</p>
+            <p className="text-sm text-gray-500 mb-2">Bitte mit Behörden-Account anmelden.</p>
+            <div className="mb-4 p-2 bg-cyan-50 border border-cyan-100 rounded-lg">
+              <p className="text-xs text-cyan-700 font-medium">
+                ℹ️ Demo-Modus: Beliebige E-Mail und Passwort eingeben
+              </p>
+            </div>
             <form className="space-y-4" onSubmit={handleLogin}>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
@@ -191,6 +196,7 @@ export default function Home() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   required
+                  placeholder="Beliebige E-Mail eingeben"
                 />
               </div>
               <div>
@@ -201,7 +207,9 @@ export default function Home() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                   required
+                  placeholder="Beliebiges Passwort eingeben"
                 />
+                <p className="text-xs text-cyan-600 mt-1 font-medium">Demo: Beliebige Daten können eingegeben werden</p>
               </div>
               <div className="flex items-center justify-between text-sm text-gray-500">
                 <label className="flex items-center gap-2">
