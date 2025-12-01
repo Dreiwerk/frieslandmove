@@ -18,17 +18,20 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNewApplicationModal, setOpenNewApplicationModal] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [email, setEmail] = useState('stefanie.pflug@friesland.de');
   const [password, setPassword] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('frieslandmove-auth');
-    if (saved === 'true') {
+    if (typeof window === 'undefined') return;
+    const stored = localStorage.getItem('frieslandmove-auth');
+    if (stored === 'true') {
       setIsAuthenticated(true);
     }
+    setAuthReady(true);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
@@ -41,6 +44,16 @@ export default function Home() {
       localStorage.setItem('frieslandmove-auth', 'true');
       setTimeout(() => setShowSuccess(false), 1200);
     }, 1000);
+  };
+
+  const handleLogout = () => {
+    setShowSuccess(false);
+    setIsAuthenticated(false);
+    setCurrentView('dashboard');
+    setOpenNewApplicationModal(false);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('frieslandmove-auth');
+    }
   };
 
   const handleNavigateToApplications = () => {
@@ -85,6 +98,16 @@ export default function Home() {
         />;
     }
   };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="animate-pulse text-sm text-gray-500 bg-white/70 px-4 py-3 rounded-lg shadow">
+          Oberfläche wird geladen...
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -210,7 +233,7 @@ export default function Home() {
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          <Header setCurrentView={setCurrentView} />
+          <Header setCurrentView={setCurrentView} onLogout={handleLogout} />
           <div className="flex-1 overflow-auto bg-gray-50">
             {renderView()}
           </div>
@@ -218,14 +241,19 @@ export default function Home() {
       </div>
 
       {showSuccess && (
-        <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-50">
-          <div className="relative w-48 h-48">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 opacity-70 blur-2xl animate-ping" />
-            <div className="absolute inset-4 rounded-full bg-white shadow-2xl flex flex-col items-center justify-center gap-2 animate-[pulse_1.2s_ease-out]">
-              <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <p className="text-sm font-semibold text-gray-700">Erfolgreich angemeldet</p>
+        <div className="pointer-events-none fixed inset-0 flex items-end justify-center pb-10 z-50">
+          <div className="relative">
+            <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-500 opacity-50 animate-pulse" />
+            <div className="relative bg-white border border-cyan-100 shadow-2xl rounded-xl px-5 py-4 flex items-center gap-3 animate-bounce">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-md text-white">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-900">Erfolgreich angemeldet</p>
+                <p className="text-xs text-gray-500">Du wirst weitergeleitet…</p>
+              </div>
             </div>
           </div>
         </div>
