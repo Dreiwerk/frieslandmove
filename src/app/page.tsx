@@ -23,6 +23,7 @@ export default function Home() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authTransitioning, setAuthTransitioning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [shellVisible, setShellVisible] = useState(false);
   const [email, setEmail] = useState('stefanie.pflug@friesland.de');
   const [password, setPassword] = useState('');
 
@@ -34,6 +35,15 @@ export default function Home() {
     }
     setAuthReady(true);
   }, []);
+
+  // Soft fade/slide-in when the main app becomes visible
+  useEffect(() => {
+    if (isAuthenticated) {
+      const timer = setTimeout(() => setShellVisible(true), 40);
+      return () => clearTimeout(timer);
+    }
+    setShellVisible(false);
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +60,7 @@ export default function Home() {
       setTimeout(() => {
         setIsAuthenticated(true);
         setAuthTransitioning(false);
-        setTimeout(() => setShowSuccess(false), 800);
+        setTimeout(() => setShowSuccess(false), 1200);
       }, 900);
     }, 700);
   };
@@ -218,7 +228,7 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gray-50">
+    <div className={`relative min-h-screen bg-gray-50 transition-all duration-500 ease-out ${shellVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
       {/* Browser Chrome Frame */}
       <div className="bg-gray-200 px-4 py-2 flex items-center gap-2 border-b border-gray-300">
         <div className="flex gap-1.5">

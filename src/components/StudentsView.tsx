@@ -11,13 +11,14 @@ import {
   MapPin,
   Accessibility,
   FileText,
-  ChevronRight,
   X,
   Calendar,
   Phone,
   Mail,
   Home,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { calculateStatistics, generateAllStudents, generateCompactDemoData } from '@/lib/dataGenerator';
 import Modal from '@/components/ui/Modal';
@@ -40,6 +41,13 @@ export default function StudentsView() {
   const [stats, setStats] = useState(statistics);
   const [loadSize, setLoadSize] = useState(generatedStudents.length);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const [newStudentDob, setNewStudentDob] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const d = new Date();
+    d.setDate(1);
+    return d;
+  });
   const loadSizeOptions = [100, 250, 500, 1000, fullTotalStudents];
 
   const handleAddStudent = () => {
@@ -89,6 +97,60 @@ export default function StudentsView() {
     document.body.removeChild(link);
     setToast({ message: 'Export erfolgreich! CSV-Datei heruntergeladen.', type: 'success' });
   };
+
+  const handleDocumentDownload = (doc: { url: string; name: string }) => {
+    const fallbackUrl = '/documents/beforderungsantrag_2024.pdf';
+    const url = doc.url && doc.url !== '#' ? doc.url : fallbackUrl;
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = doc.name;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setToast({ message: `${doc.name} wird heruntergeladen...`, type: 'info' });
+  };
+
+  const monthNames = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+  const dayNames = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return 'TT.MM.JJJJ';
+    return date.toLocaleDateString('de-DE');
+  };
+
+  const startOfMonth = (date: Date) => {
+    const d = new Date(date);
+    d.setDate(1);
+    return d;
+  };
+
+  const daysInMonth = (date: Date) => {
+    const d = new Date(date);
+    d.setMonth(d.getMonth() + 1, 0);
+    return d.getDate();
+  };
+
+  const getLeadingEmptyDays = (date: Date) => {
+    const day = startOfMonth(date).getDay(); // 0 (Sun) - 6 (Sat)
+    const isoDay = day === 0 ? 7 : day;
+    return isoDay - 1;
+  };
+
+  const handleSelectDate = (day: number) => {
+    const d = new Date(displayMonth);
+    d.setDate(day);
+    setNewStudentDob(d);
+    setShowDatePicker(false);
+  };
+
+  const changeMonth = (delta: number) => {
+    const d = new Date(displayMonth);
+    d.setMonth(d.getMonth() + delta);
+    setDisplayMonth(d);
+  };
+
+  const today = new Date();
 
   // Sync editable state when selection changes
   React.useEffect(() => {
@@ -566,7 +628,11 @@ export default function StudentsView() {
               {student.documents.length > 0 ? (
                 <div className="space-y-2">
                   {student.documents.map((doc) => (
-                    <div key={doc.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div
+                      key={doc.id}
+                      className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer"
+                      onClick={() => handleDocumentDownload(doc)}
+                    >
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-cyan-100 rounded-lg">
                           <FileText className="w-4 h-4 text-cyan-600" />
@@ -673,12 +739,105 @@ export default function StudentsView() {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Geburtsdatum *</label>
             <div className="relative">
-              <input
-                type="date"
-                className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-gray-900 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                placeholder="TT.MM.JJJJ"
-              />
+              <button
+                type="button"
+                onClick={() => {
+                  const base = newStudentDob ? startOfMonth(newStudentDob) : startOfMonth(new Date());
+                  setDisplayMonth(base);
+                  setShowDatePicker((prev) => !prev);
+                }}
+                className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-left text-gray-900 bg-white"
+              >
+                {formatDate(newStudentDob)}
+              </button>
               <Calendar className="w-5 h-5 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+
+              {showDatePicker && (
+                <div className="absolute z-20 mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-200 p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <button
+                      type="button"
+                      onClick={() => changeMonth(-1)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <div className="text-sm font-semibold text-gray-800">
+                      {monthNames[displayMonth.getMonth()]} {displayMonth.getFullYear()}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => changeMonth(1)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-gray-500 mb-1">
+                    {dayNames.map((d) => (
+                      <div key={d} className="py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1 text-center text-sm">
+                    {Array.from({ length: getLeadingEmptyDays(displayMonth) }).map((_, idx) => (
+                      <div key={`empty-${idx}`} className="py-2" />
+                    ))}
+                    {Array.from({ length: daysInMonth(displayMonth) }).map((_, idx) => {
+                      const day = idx + 1;
+                      const isToday =
+                        day === today.getDate() &&
+                        displayMonth.getMonth() === today.getMonth() &&
+                        displayMonth.getFullYear() === today.getFullYear();
+                      const isSelected =
+                        newStudentDob &&
+                        day === newStudentDob.getDate() &&
+                        displayMonth.getMonth() === newStudentDob.getMonth() &&
+                        displayMonth.getFullYear() === newStudentDob.getFullYear();
+                      return (
+                        <button
+                          type="button"
+                          key={`day-${day}`}
+                          onClick={() => handleSelectDate(day)}
+                          className={`py-2 rounded-lg transition-colors ${
+                            isSelected
+                              ? 'bg-cyan-600 text-white shadow-sm'
+                              : isToday
+                                ? 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+                                : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {day}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 text-sm">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewStudentDob(null);
+                        setShowDatePicker(false);
+                      }}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Löschen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const todayDate = new Date();
+                        todayDate.setHours(0, 0, 0, 0);
+                        setNewStudentDob(todayDate);
+                        setDisplayMonth(startOfMonth(todayDate));
+                        setShowDatePicker(false);
+                      }}
+                      className="text-cyan-600 font-medium hover:text-cyan-700"
+                    >
+                      Heute
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div>

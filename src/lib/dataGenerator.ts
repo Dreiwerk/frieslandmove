@@ -73,7 +73,7 @@ export function generateStudent(index: number) {
       name: 'Beförderungsantrag_2024.pdf',
       uploadDate: randomDate(new Date('2024-08-01'), new Date('2024-09-15')),
       fileSize: Math.floor(Math.random() * 300000) + 100000,
-      url: '#',
+      url: '/documents/beforderungsantrag_2024.pdf',
     });
   }
   if (Math.random() < 0.3 && accessibility.length > 0) {
