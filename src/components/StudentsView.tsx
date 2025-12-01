@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Search,
   Filter,
@@ -17,25 +17,30 @@ import {
   Phone,
   Mail,
   Home,
+  Loader2,
 } from 'lucide-react';
-import { generateCompactDemoData } from '@/lib/dataGenerator';
+import { calculateStatistics, generateAllStudents, generateCompactDemoData } from '@/lib/dataGenerator';
 import Modal from '@/components/ui/Modal';
 import Toast from '@/components/ui/Toast';
 
 // Generiere realistische Demo-Daten (100 Schüler für schnelle UI, aber Statistik zeigt 9.487)
 const { students: generatedStudents, statistics } = generateCompactDemoData();
-
-// Verwende generierte Daten
-const mockStudents = generatedStudents;
+const fullTotalStudents = statistics.total;
 
 export default function StudentsView() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStudent, setSelectedStudent] = useState<typeof mockStudents[0] | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<typeof generatedStudents[0] | null>(null);
+  const [editableStudent, setEditableStudent] = useState<typeof generatedStudents[0] | null>(null);
   const [filterSchool, setFilterSchool] = useState('alle');
   const [filterTransport, setFilterTransport] = useState('alle');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [studentsData, setStudentsData] = useState(generatedStudents);
+  const [stats, setStats] = useState(statistics);
+  const [loadSize, setLoadSize] = useState(generatedStudents.length);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+  const loadSizeOptions = [100, 250, 500, 1000, fullTotalStudents];
 
   const handleAddStudent = () => {
     setIsAddModalOpen(true);
@@ -47,23 +52,55 @@ export default function StudentsView() {
   };
 
   const handleEditStudent = () => {
+    if (!selectedStudent) return;
+    setEditableStudent(selectedStudent);
     setIsEditMode(true);
     setToast({ message: 'Bearbeitungsmodus aktiviert', type: 'info' });
   };
 
   const handleSaveEdit = () => {
+    if (!editableStudent) return;
+    setStudentsData((prev) => prev.map((s) => (s.id === editableStudent.id ? editableStudent : s)));
+    setSelectedStudent(editableStudent);
     setIsEditMode(false);
     setToast({ message: 'Änderungen gespeichert!', type: 'success' });
   };
 
   const handleExport = () => {
-    setToast({ message: 'Schülerdaten werden exportiert...', type: 'info' });
-    setTimeout(() => {
-      setToast({ message: 'Export erfolgreich! CSV-Datei heruntergeladen.', type: 'success' });
-    }, 1500);
+    // Simple CSV export
+    const headers = ['ID', 'Name', 'Schule', 'Klasse', 'Beförderung', 'Adresse'];
+    const rows = filteredStudents.map((s) => [
+      s.id,
+      `"${s.name}"`,
+      `"${s.school}"`,
+      s.class,
+      s.transport.type === 'oepnv' ? 'ÖPNV' : 'Freistellung',
+      `"${s.address.street}, ${s.address.postalCode} ${s.address.city}"`,
+    ]);
+    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `schuelerdaten_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setToast({ message: 'Export erfolgreich! CSV-Datei heruntergeladen.', type: 'success' });
   };
 
-  const filteredStudents = mockStudents.filter(student => {
+  // Sync editable state when selection changes
+  React.useEffect(() => {
+    if (selectedStudent) {
+      setEditableStudent(selectedStudent);
+    } else {
+      setEditableStudent(null);
+    }
+    setIsEditMode(false);
+  }, [selectedStudent]);
+
+  const filteredStudents = studentsData.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           student.id.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSchool = filterSchool === 'alle' || student.school === filterSchool;
@@ -72,10 +109,28 @@ export default function StudentsView() {
     return matchesSearch && matchesSchool && matchesTransport;
   });
 
-  const schools = ['alle', ...Array.from(new Set(mockStudents.map(s => s.school)))];
+  const schools = ['alle', ...Array.from(new Set(studentsData.map(s => s.school)))];
 
-  // Zeige echte Gesamtzahl (9.487) auch wenn nur 100 in der UI geladen sind
-  const totalStudentsDisplay = statistics.total;
+  // Zeige Gesamtzahl (9.487), aber kommuniziere geladene Teilmenge
+  const totalStudentsDisplay = fullTotalStudents;
+  const loadedStudentsDisplay = studentsData.length;
+
+  const handleLoadStudents = (count: number) => {
+    if (isLoadingAll || count === loadSize) return;
+    setIsLoadingAll(true);
+    setTimeout(() => {
+      const loadedStudents = generateAllStudents(count);
+      const loadedStats = calculateStatistics(loadedStudents);
+      setStudentsData(loadedStudents);
+      setStats(loadedStats);
+      setLoadSize(count);
+      setIsLoadingAll(false);
+      setSelectedStudent(null);
+      setToast({ message: count >= fullTotalStudents ? `Alle ${fullTotalStudents.toLocaleString('de-DE')} Schüler geladen` : `${count.toLocaleString('de-DE')} Schüler geladen`, type: 'info' });
+    }, 20);
+  };
+
+  const allStudentsLoaded = loadSize >= fullTotalStudents;
 
   return (
     <div className="h-full flex">
@@ -86,7 +141,10 @@ export default function StudentsView() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Schülerdaten</h2>
-              <p className="text-sm text-gray-500 mt-1">{filteredStudents.length} von {totalStudentsDisplay.toLocaleString('de-DE')} Schülern angezeigt</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {filteredStudents.length.toLocaleString('de-DE')} von {loadedStudentsDisplay.toLocaleString('de-DE')} geladenen Schülern angezeigt
+                <span className="text-gray-400"> (Gesamt {totalStudentsDisplay.toLocaleString('de-DE')})</span>
+              </p>
             </div>
             <button
               onClick={handleAddStudent}
@@ -137,6 +195,33 @@ export default function StudentsView() {
               <Download className="w-4 h-4" />
               Export
             </button>
+            <div className="flex items-center gap-2 ml-2">
+              <label className="text-xs text-gray-500">Anzahl laden</label>
+              <select
+                value={loadSize}
+                onChange={(e) => handleLoadStudents(Number(e.target.value))}
+                disabled={isLoadingAll}
+                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                {loadSizeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option === fullTotalStudents ? `Alle ${option.toLocaleString('de-DE')}` : option.toLocaleString('de-DE')}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => handleLoadStudents(fullTotalStudents)}
+                disabled={allStudentsLoaded || isLoadingAll}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                  allStudentsLoaded
+                    ? 'text-gray-400 bg-gray-50 border-gray-100 cursor-default'
+                    : 'text-cyan-700 border-cyan-100 bg-cyan-50 hover:bg-cyan-100'
+                }`}
+              >
+                {isLoadingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+                {allStudentsLoaded ? 'Alle geladen' : 'Alle laden'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -212,6 +297,12 @@ export default function StudentsView() {
       {/* Right Panel - Student Details */}
       {selectedStudent ? (
         <div className="w-96 bg-white flex flex-col overflow-hidden">
+          {(() => {
+            // choose current student view
+            const student = isEditMode && editableStudent ? editableStudent : selectedStudent;
+            if (!student) return null;
+            return (
+              <>
           {/* Detail Header */}
           <div className="p-5 border-b border-gray-100 bg-gradient-to-r from-cyan-500 to-blue-600 text-white">
             <div className="flex items-start justify-between mb-3">
@@ -220,8 +311,8 @@ export default function StudentsView() {
                   <Users className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg">{selectedStudent.name}</h3>
-                  <p className="text-sm text-cyan-100">{selectedStudent.id}</p>
+                  <h3 className="font-bold text-lg">{student.name}</h3>
+                  <p className="text-sm text-cyan-100">{student.id}</p>
                 </div>
               </div>
               <button
@@ -233,7 +324,7 @@ export default function StudentsView() {
             </div>
             <div className="flex items-center gap-2 text-sm text-cyan-100">
               <Calendar className="w-4 h-4" />
-              <span>Geboren: {new Date(selectedStudent.dateOfBirth).toLocaleDateString('de-DE')}</span>
+              <span>Geboren: {new Date(student.dateOfBirth).toLocaleDateString('de-DE')}</span>
             </div>
           </div>
 
@@ -248,70 +339,153 @@ export default function StudentsView() {
               <div className="space-y-2 bg-gray-50 rounded-lg p-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Schule:</span>
-                  <span className="font-medium text-gray-900">{selectedStudent.school}</span>
+                  {isEditMode ? (
+                    <input
+                      value={student.school}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, school: e.target.value } : prev)
+                      }
+                      className="w-40 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <span className="font-medium text-gray-900">{student.school}</span>
+                  )}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Klasse:</span>
-                  <span className="font-medium text-gray-900">{selectedStudent.class}</span>
+                  {isEditMode ? (
+                    <input
+                      value={student.class}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, class: e.target.value } : prev)
+                      }
+                      className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <span className="font-medium text-gray-900">{student.class}</span>
+                  )}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Schuljahr:</span>
-                  <span className="font-medium text-gray-900">{selectedStudent.schoolYear}</span>
+                  <span className="font-medium text-gray-900">{student.schoolYear}</span>
                 </div>
               </div>
             </div>
 
             {/* Adresse */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-cyan-600" />
-                Wohnadresse
-              </h4>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-sm text-gray-900 font-medium">{selectedStudent.address.street}</p>
-                <p className="text-sm text-gray-600">{selectedStudent.address.postalCode} {selectedStudent.address.city}</p>
-              </div>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-cyan-600" />
+              Wohnadresse
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-3">
+                {isEditMode ? (
+                  <div className="space-y-2">
+                    <input
+                      value={student.address.street}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, address: { ...prev.address, street: e.target.value } } : prev)
+                      }
+                      className="w-full px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={student.address.postalCode}
+                        onChange={(e) =>
+                          setEditableStudent((prev) => prev ? { ...prev, address: { ...prev.address, postalCode: e.target.value } } : prev)
+                        }
+                        className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                      <input
+                        value={student.address.city}
+                        onChange={(e) =>
+                          setEditableStudent((prev) => prev ? { ...prev, address: { ...prev.address, city: e.target.value } } : prev)
+                        }
+                        className="flex-1 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-900 font-medium">{student.address.street}</p>
+                    <p className="text-sm text-gray-600">{student.address.postalCode} {student.address.city}</p>
+                  </>
+                )}
             </div>
+          </div>
 
             {/* Beförderung */}
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Home className="w-4 h-4 text-cyan-600" />
-                Beförderung
-              </h4>
-              <div className="space-y-2 bg-gray-50 rounded-lg p-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Art:</span>
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Home className="w-4 h-4 text-cyan-600" />
+              Beförderung
+            </h4>
+            <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Art:</span>
+                {isEditMode ? (
+                  <select
+                    value={student.transport.type}
+                    onChange={(e) =>
+                      setEditableStudent((prev) => prev ? { ...prev, transport: { ...prev.transport, type: e.target.value as 'oepnv' | 'freistellung' } } : prev)
+                    }
+                    className="px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="oepnv">ÖPNV</option>
+                    <option value="freistellung">Freistellung</option>
+                  </select>
+                ) : (
                   <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                    selectedStudent.transport.type === 'oepnv'
+                    student.transport.type === 'oepnv'
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-purple-100 text-purple-700'
                   }`}>
-                    {selectedStudent.transport.type === 'oepnv' ? 'ÖPNV' : 'Freistellung'}
+                    {student.transport.type === 'oepnv' ? 'ÖPNV' : 'Freistellung'}
                   </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Route:</span>
-                  <span className="font-medium text-gray-900">{selectedStudent.transport.route}</span>
-                </div>
-                {selectedStudent.transport.pickupTime && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Abholzeit:</span>
-                    <span className="font-medium text-gray-900">{selectedStudent.transport.pickupTime} Uhr</span>
-                  </div>
                 )}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Route:</span>
+                {isEditMode ? (
+                  <input
+                    value={student.transport.route || ''}
+                    onChange={(e) =>
+                      setEditableStudent((prev) => prev ? { ...prev, transport: { ...prev.transport, route: e.target.value } } : prev)
+                    }
+                    className="w-32 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                ) : (
+                  <span className="font-medium text-gray-900">{student.transport.route}</span>
+                )}
+              </div>
+              {student.transport.pickupTime && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Abholzeit:</span>
+                  {isEditMode ? (
+                    <input
+                      value={student.transport.pickupTime}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, transport: { ...prev.transport, pickupTime: e.target.value } } : prev)
+                      }
+                      className="w-24 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <span className="font-medium text-gray-900">{student.transport.pickupTime} Uhr</span>
+                  )}
+                </div>
+              )}
               </div>
             </div>
 
             {/* Barrierefreiheit */}
-            {selectedStudent.accessibility.length > 0 && (
+            {student.accessibility.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                   <Accessibility className="w-4 h-4 text-cyan-600" />
                   Barrierefreiheit
                 </h4>
                 <div className="space-y-2">
-                  {selectedStudent.accessibility.map((need, index) => (
+                  {student.accessibility.map((need, index) => (
                     <div key={index} className="bg-amber-50 border border-amber-200 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
@@ -336,19 +510,49 @@ export default function StudentsView() {
               <div className="space-y-2 bg-gray-50 rounded-lg p-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Name:</span>
-                  <span className="font-medium text-gray-900">{selectedStudent.legalGuardian.name}</span>
+                  {isEditMode ? (
+                    <input
+                      value={student.legalGuardian.name}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, legalGuardian: { ...prev.legalGuardian, name: e.target.value } } : prev)
+                      }
+                      className="w-40 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <span className="font-medium text-gray-900">{student.legalGuardian.name}</span>
+                  )}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Telefon:</span>
-                  <a href={`tel:${selectedStudent.legalGuardian.phone}`} className="font-medium text-cyan-600 hover:text-cyan-700">
-                    {selectedStudent.legalGuardian.phone}
-                  </a>
+                  {isEditMode ? (
+                    <input
+                      value={student.legalGuardian.phone}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, legalGuardian: { ...prev.legalGuardian, phone: e.target.value } } : prev)
+                      }
+                      className="w-40 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <a href={`tel:${student.legalGuardian.phone}`} className="font-medium text-cyan-600 hover:text-cyan-700">
+                      {student.legalGuardian.phone}
+                    </a>
+                  )}
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">E-Mail:</span>
-                  <a href={`mailto:${selectedStudent.legalGuardian.email}`} className="font-medium text-cyan-600 hover:text-cyan-700">
-                    {selectedStudent.legalGuardian.email}
-                  </a>
+                  {isEditMode ? (
+                    <input
+                      value={student.legalGuardian.email}
+                      onChange={(e) =>
+                        setEditableStudent((prev) => prev ? { ...prev, legalGuardian: { ...prev.legalGuardian, email: e.target.value } } : prev)
+                      }
+                      className="w-48 px-2 py-1 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    />
+                  ) : (
+                    <a href={`mailto:${student.legalGuardian.email}`} className="font-medium text-cyan-600 hover:text-cyan-700">
+                      {student.legalGuardian.email}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -357,11 +561,11 @@ export default function StudentsView() {
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <FileText className="w-4 h-4 text-cyan-600" />
-                Dokumente ({selectedStudent.documents.length})
+                Dokumente ({student.documents.length})
               </h4>
-              {selectedStudent.documents.length > 0 ? (
+              {student.documents.length > 0 ? (
                 <div className="space-y-2">
-                  {selectedStudent.documents.map((doc) => (
+                  {student.documents.map((doc) => (
                     <div key={doc.id} className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors cursor-pointer">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-cyan-100 rounded-lg">
@@ -399,7 +603,10 @@ export default function StudentsView() {
               </button>
               {isEditMode && (
                 <button
-                  onClick={() => setIsEditMode(false)}
+                  onClick={() => {
+                    setEditableStudent(selectedStudent);
+                    setIsEditMode(false);
+                  }}
                   className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Abbrechen
@@ -407,6 +614,9 @@ export default function StudentsView() {
               )}
             </div>
           </div>
+              </>
+            );
+          })()}
         </div>
       ) : (
         <div className="w-96 bg-gray-50 flex items-center justify-center">

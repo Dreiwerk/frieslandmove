@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ViewType } from '@/types';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -18,6 +18,30 @@ export default function Home() {
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [openNewApplicationModal, setOpenNewApplicationModal] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [email, setEmail] = useState('stefanie.pflug@friesland.de');
+  const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    const saved = localStorage.getItem('frieslandmove-auth');
+    if (saved === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setTimeout(() => {
+      setAuthLoading(false);
+      setIsAuthenticated(true);
+      setShowSuccess(true);
+      localStorage.setItem('frieslandmove-auth', 'true');
+      setTimeout(() => setShowSuccess(false), 1200);
+    }, 1000);
+  };
 
   const handleNavigateToApplications = () => {
     setCurrentView('applications');
@@ -62,8 +86,92 @@ export default function Home() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center px-6">
+        <div className="max-w-4xl w-full bg-white shadow-2xl rounded-2xl border border-gray-100 grid grid-cols-2 overflow-hidden">
+          <div className="p-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600 text-white relative">
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%)]" />
+            <div className="relative space-y-6">
+              <div className="inline-flex items-center gap-3 px-4 py-2 bg-white/20 rounded-full backdrop-blur">
+                <span className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center font-semibold">FM</span>
+                <div>
+                  <p className="text-sm font-semibold">FrieslandMove</p>
+                  <p className="text-xs text-white/80">Prototyp – Behördencockpit</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">Sicherer Zugang</h2>
+                <p className="text-white/80 text-sm">
+                  Authentifizierungsvorschau mit Zwei-Faktor-Platzhalter. Alle Daten bleiben in der Demo lokal.
+                </p>
+              </div>
+              <ul className="space-y-3 text-sm text-white/90">
+                <li className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">✓</span>
+                  Eindeutige Nutzerkennung (E-Mail)
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">✓</span>
+                  Platzhalter für 2FA-TAN
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">✓</span>
+                  Demo: Login bleibt lokal gespeichert
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="p-8 bg-white">
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Anmeldung</h1>
+            <p className="text-sm text-gray-500 mb-6">Bitte mit Behörden-Account anmelden.</p>
+            <form className="space-y-4" onSubmit={handleLogin}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-Mail</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Passwort</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  required
+                />
+              </div>
+              <div className="flex items-center justify-between text-sm text-gray-500">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500" defaultChecked />
+                  Angemeldet bleiben (Demo)
+                </label>
+                <span className="text-cyan-600 font-medium cursor-pointer">Passwort vergessen?</span>
+              </div>
+              <button
+                type="submit"
+                disabled={authLoading}
+                className={`w-full py-3 rounded-lg text-white font-semibold shadow-lg shadow-cyan-500/30 transition-transform ${
+                  authLoading ? 'bg-cyan-300 cursor-wait' : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:-translate-y-0.5'
+                }`}
+              >
+                {authLoading ? 'Wird geprüft...' : 'Anmelden'}
+              </button>
+              <p className="text-xs text-gray-400 text-center">Zugangsdaten werden nicht übertragen – reine UI-Simulation.</p>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="relative min-h-screen bg-gray-50">
       {/* Browser Chrome Frame */}
       <div className="bg-gray-200 px-4 py-2 flex items-center gap-2 border-b border-gray-300">
         <div className="flex gap-1.5">
@@ -108,6 +216,20 @@ export default function Home() {
           </div>
         </main>
       </div>
+
+      {showSuccess && (
+        <div className="pointer-events-none fixed inset-0 flex items-center justify-center z-50">
+          <div className="relative w-48 h-48">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 opacity-70 blur-2xl animate-ping" />
+            <div className="absolute inset-4 rounded-full bg-white shadow-2xl flex flex-col items-center justify-center gap-2 animate-[pulse_1.2s_ease-out]">
+              <svg className="w-8 h-8 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm font-semibold text-gray-700">Erfolgreich angemeldet</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

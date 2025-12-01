@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   XCircle,
   FileQuestion,
+  Settings,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { applications, applicationColumns } from '@/lib/data';
 import { Application, ApplicationStatus } from '@/types';
@@ -28,6 +31,14 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [isNewApplicationModalOpen, setIsNewApplicationModalOpen] = useState(openNewModal);
   const [showFilter, setShowFilter] = useState(false);
+  const [showColumnConfig, setShowColumnConfig] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState({
+    applicant: true,
+    school: true,
+    distance: true,
+    status: true,
+    submittedDate: true,
+  });
 
   // Filter states
   const [selectedStatuses, setSelectedStatuses] = useState<ApplicationStatus[]>([
@@ -224,6 +235,48 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
               <Plus className="w-4 h-4" />
               Neuer Antrag
             </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowColumnConfig(!showColumnConfig)}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Ansicht anpassen
+              </button>
+              {showColumnConfig && (
+                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 space-y-2">
+                  <p className="text-sm font-semibold text-gray-900">Spalten</p>
+                  {[
+                    { key: 'applicant', label: 'Antragsteller' },
+                    { key: 'school', label: 'Schule' },
+                    { key: 'distance', label: 'Entfernung' },
+                    { key: 'status', label: 'Status' },
+                    { key: 'submittedDate', label: 'Eingang' },
+                  ].map((col) => (
+                    <label key={col.key} className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={visibleColumns[col.key as keyof typeof visibleColumns]}
+                        onChange={(e) =>
+                          setVisibleColumns((prev) => ({ ...prev, [col.key]: e.target.checked }))
+                        }
+                        className="rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+                      />
+                      <span>{col.label}</span>
+                    </label>
+                  ))}
+                  <button
+                    onClick={() => {
+                      setShowColumnConfig(false);
+                      setToast({ message: 'Ansicht gespeichert (simuliert)', type: 'success' });
+                    }}
+                    className="w-full mt-2 px-3 py-2 bg-cyan-600 text-white text-sm rounded-lg hover:bg-cyan-700 transition-colors"
+                  >
+                    Ansicht speichern
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -270,7 +323,9 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
                       }`}
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <p className="font-medium text-gray-900">{app.studentName}</p>
+                        {visibleColumns.applicant && (
+                          <p className="font-medium text-gray-900">{app.studentName}</p>
+                        )}
                         {app.autoChecked && (
                           <span className="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
                             <Sparkles className="w-3 h-3" />
@@ -278,17 +333,24 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 mb-3">{app.school}</p>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${
-                          app.eligible 
-                            ? 'bg-emerald-50 text-emerald-700' 
-                            : 'bg-red-50 text-red-700'
-                        }`}>
-                          {app.eligible ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                          {app.distance} km
-                        </span>
-                        <span className="text-gray-400">{app.submittedDate}</span>
+                      {visibleColumns.school && <p className="text-sm text-gray-500 mb-3">{app.school}</p>}
+                      <div className="flex items-center gap-2 text-xs flex-wrap">
+                        {visibleColumns.distance && (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium whitespace-nowrap ${
+                            app.eligible 
+                              ? 'bg-emerald-50 text-emerald-700' 
+                              : 'bg-red-50 text-red-700'
+                          }`}>
+                            {app.eligible ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                            {app.distance} km
+                          </span>
+                        )}
+                        {visibleColumns.status && (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 font-medium whitespace-nowrap">
+                            {column.title}
+                          </span>
+                        )}
+                        {visibleColumns.submittedDate && <span className="text-gray-400 whitespace-nowrap">{app.submittedDate}</span>}
                       </div>
                     </div>
                   ))}

@@ -5,10 +5,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  --friesland-primary: #009EE0;
-  --friesland-dark: #0284c7;
-  --friesland-light: #7dd3fc;
+  --friesland-primary: #0D8CBD;
+  --friesland-dark: #0A6F99;
+  --friesland-light: #CFE8F4;
+  --accent: #0D8CBD;
+  --accent-strong: #0A6F99;
+  --accent-soft: #DCEFF7;
+  --brand: 'FrieslandMove';
+  --tagline: 'Schülerbeförderung';
 }
+
+/* Accent overrides for Tailwind utility classes (Vergabe: anpassbare Maske) */
+.bg-cyan-50 { background-color: var(--accent-soft) !important; }
+.bg-cyan-100 { background-color: var(--accent-soft) !important; }
+.bg-cyan-600 { background-color: var(--accent) !important; }
+.bg-cyan-700 { background-color: var(--accent-strong) !important; }
+.text-cyan-600 { color: var(--accent) !important; }
+.text-cyan-700 { color: var(--accent-strong) !important; }
+.border-cyan-100 { border-color: var(--accent-soft) !important; }
+.border-cyan-200 { border-color: var(--accent-soft) !important; }
+.border-cyan-500 { border-color: var(--accent) !important; }
+.focus\:ring-cyan-500:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent); outline: none; }
+.focus\:border-cyan-500:focus { border-color: var(--accent) !important; }
+.shadow-cyan-600\/20 { box-shadow: 0 10px 20px color-mix(in srgb, var(--accent) 20%, transparent) !important; }
 
 * {
   box-sizing: border-box;

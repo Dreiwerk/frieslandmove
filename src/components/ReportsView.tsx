@@ -17,7 +17,6 @@ import {
   Activity,
   CheckCircle,
   FileSpreadsheet,
-  FilePdf,
 } from 'lucide-react';
 
 // Mock KPI Data
@@ -86,7 +85,7 @@ const predefinedReports = [
     description: 'Analyse der Routenauslastung und Optimierungspotenziale',
     category: 'routen' as const,
     format: 'pdf' as const,
-    icon: FilePdf,
+    icon: FileText,
     lastGenerated: '2024-11-12',
   },
   {
@@ -104,7 +103,7 @@ const predefinedReports = [
     description: 'Gesamtübersicht aller Kosten für das Schuljahr',
     category: 'kosten' as const,
     format: 'pdf' as const,
-    icon: FilePdf,
+    icon: FileText,
     lastGenerated: '2024-10-30',
   },
   {
@@ -147,21 +146,133 @@ const transportTypeData = [
 export default function ReportsView() {
   const [activeTab, setActiveTab] = useState<'analytics' | 'reports'>('analytics');
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [exportLoading, setExportLoading] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<'alle' | 'kosten' | 'schueler' | 'routen' | 'compliance'>('alle');
+  const [formatFilter, setFormatFilter] = useState<'alle' | 'pdf' | 'excel' | 'csv'>('alle');
+  const [generatingReportId, setGeneratingReportId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+  const periodLabel =
+    selectedPeriod === 'last7'
+      ? 'Letzte 7 Tage'
+      : selectedPeriod === 'last30'
+      ? 'Letzte 30 Tage'
+      : selectedPeriod === 'week'
+      ? 'Diese Woche'
+      : selectedPeriod === 'month'
+      ? 'Dieser Monat'
+      : selectedPeriod === 'quarter'
+      ? 'Dieses Quartal'
+      : selectedPeriod === 'year'
+      ? 'Dieses Jahr'
+      : 'Schuljahr 2024/2025';
+
   const handleExport = () => {
+    setExportLoading(true);
     setToast({ message: 'Daten werden exportiert...', type: 'info' });
-    setTimeout(() => {
-      setToast({ message: 'Export erfolgreich! Excel-Datei heruntergeladen.', type: 'success' });
-    }, 1500);
+    try {
+      const summaryLines = [
+        `Berichte & Statistik – Export`,
+        `Zeitraum: ${periodLabel}`,
+        `Tab: ${activeTab === 'analytics' ? 'Analytics' : 'Vordefinierte Berichte'}`,
+      ];
+      if (activeTab === 'reports') {
+        summaryLines.push(`Filter: Kategorie=${categoryFilter}, Format=${formatFilter}`);
+        filteredReports.forEach((r) => summaryLines.push(`- ${r.name} (${r.format.toUpperCase()})`));
+      } else {
+        summaryLines.push('Analytics-Daten (Demo-Export)');
+        kpiData.forEach((kpi) => summaryLines.push(`- ${kpi.label}: ${kpi.value} ${kpi.unit}`));
+      }
+      const csv = summaryLines.join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `berichte_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setToast({ message: 'Export erfolgreich! Datei heruntergeladen.', type: 'success' });
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   const handleDownloadReport = (reportName: string, format: string) => {
-    setToast({ message: `${reportName} wird als ${format.toUpperCase()} erstellt...`, type: 'info' });
+    // Simulierter Export mit echtem Dateiinhalt je nach Format
+    let blob: Blob;
+    if (format === 'pdf') {
+      // Minimal gültiges PDF-Dokument
+      const title = reportName;
+      const date = new Date().toLocaleDateString('de-DE');
+      const subtitle = `Generiert am ${date}`;
+      const pdfContent = `%PDF-1.3
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Count 1 /Kids [3 0 R] >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length 120 >> stream
+BT
+/F1 20 Tf
+70 740 Td (${title}) Tj
+0 -28 Td (${subtitle}) Tj
+0 -28 Td (Hinweis: Demo-PDF ohne echte Inhalte) Tj
+ET
+endstream endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000113 00000 n 
+0000000284 00000 n 
+0000000394 00000 n 
+trailer << /Root 1 0 R /Size 6 >>
+startxref
+490
+%%EOF`;
+      blob = new Blob([pdfContent], { type: 'application/pdf' });
+    } else if (format === 'excel') {
+      const csv = `Report;${reportName}\nDatum;${new Date().toLocaleDateString('de-DE')}\nHinweis;Demodatei (Excel-kompatibel)`;
+      blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    } else {
+      const csv = `Report;${reportName}\nDatum;${new Date().toLocaleDateString('de-DE')}\nHinweis;Demodatei`;
+      blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    }
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${reportName.replace(/\s+/g, '_').toLowerCase()}.${format === 'excel' ? 'xlsx' : format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setToast({ message: `${reportName} erfolgreich heruntergeladen!`, type: 'success' });
+  };
+
+  const handleGenerateReport = (reportId: string, reportName: string) => {
+    setGeneratingReportId(reportId);
+    setToast({ message: `${reportName} wird neu generiert...`, type: 'info' });
     setTimeout(() => {
-      setToast({ message: `${reportName} erfolgreich heruntergeladen!`, type: 'success' });
+      const today = new Date().toISOString().split('T')[0];
+      // Update lastGenerated for the mocked list
+      predefinedReports.forEach((r) => {
+        if (r.id === reportId) {
+          r.lastGenerated = today;
+        }
+      });
+      setGeneratingReportId(null);
+      setToast({ message: 'Bericht erfolgreich generiert!', type: 'success' });
     }, 2000);
   };
+
+  const filteredReports = predefinedReports.filter((report) => {
+    const categoryOk = categoryFilter === 'alle' || report.category === categoryFilter;
+    const formatOk = formatFilter === 'alle' || report.format === formatFilter;
+    return categoryOk && formatOk;
+  });
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -179,17 +290,22 @@ export default function ReportsView() {
               className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               <option value="week">Diese Woche</option>
+              <option value="last7">Letzte 7 Tage</option>
               <option value="month">Dieser Monat</option>
+              <option value="last30">Letzte 30 Tage</option>
               <option value="quarter">Dieses Quartal</option>
               <option value="year">Dieses Jahr</option>
               <option value="schoolyear">Schuljahr 2024/2025</option>
             </select>
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-600/20"
+              disabled={exportLoading}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-cyan-600/20 ${
+                exportLoading ? 'bg-cyan-300 text-white cursor-wait' : 'bg-cyan-600 text-white hover:bg-cyan-700'
+              }`}
             >
               <Download className="w-4 h-4" />
-              Exportieren
+              {exportLoading ? 'Exportiert...' : 'Exportieren'}
             </button>
           </div>
         </div>
@@ -221,6 +337,27 @@ export default function ReportsView() {
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-5">
+        {/* Active filter tags */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">
+            Zeitraum: {selectedPeriod === 'last7' ? 'Letzte 7 Tage' : selectedPeriod === 'last30' ? 'Letzte 30 Tage' :
+              selectedPeriod === 'week' ? 'Diese Woche' :
+              selectedPeriod === 'month' ? 'Dieser Monat' :
+              selectedPeriod === 'quarter' ? 'Dieses Quartal' :
+              selectedPeriod === 'year' ? 'Dieses Jahr' : 'Schuljahr 2024/2025'}
+          </span>
+          {categoryFilter !== 'alle' && (
+            <span className="px-2.5 py-1 rounded-full bg-cyan-50 text-cyan-700 text-xs font-semibold">
+              Kategorie: {categoryFilter}
+            </span>
+          )}
+          {formatFilter !== 'alle' && (
+            <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold">
+              Format: {formatFilter.toUpperCase()}
+            </span>
+          )}
+        </div>
+
         {/* Analytics Tab */}
         {activeTab === 'analytics' && (
           <div className="space-y-5">
@@ -456,14 +593,22 @@ export default function ReportsView() {
             <div className="bg-white rounded-xl border border-gray-200 p-4">
               <div className="flex items-center gap-3">
                 <Filter className="w-4 h-4 text-gray-400" />
-                <select className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value as typeof categoryFilter)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
                   <option value="alle">Alle Kategorien</option>
                   <option value="kosten">Kosten</option>
                   <option value="schueler">Schüler</option>
                   <option value="routen">Routen</option>
                   <option value="compliance">Compliance</option>
                 </select>
-                <select className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                <select
+                  value={formatFilter}
+                  onChange={(e) => setFormatFilter(e.target.value as typeof formatFilter)}
+                  className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
                   <option value="alle">Alle Formate</option>
                   <option value="pdf">PDF</option>
                   <option value="excel">Excel</option>
@@ -474,7 +619,7 @@ export default function ReportsView() {
 
             {/* Reports Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {predefinedReports.map((report) => {
+              {filteredReports.map((report) => {
                 const Icon = report.icon;
                 return (
                   <div key={report.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-cyan-300 hover:shadow-lg transition-all">
@@ -511,15 +656,15 @@ export default function ReportsView() {
                         Herunterladen
                       </button>
                       <button
-                        onClick={() => {
-                          setToast({ message: `${report.name} wird neu generiert...`, type: 'info' });
-                          setTimeout(() => {
-                            setToast({ message: 'Bericht erfolgreich generiert!', type: 'success' });
-                          }, 2000);
-                        }}
-                        className="flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700"
+                        onClick={() => handleGenerateReport(report.id, report.name)}
+                        className={`flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 rounded-lg transition-colors text-sm font-medium ${
+                          generatingReportId === report.id
+                            ? 'text-gray-400 bg-gray-50 cursor-wait'
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                        disabled={generatingReportId === report.id}
                       >
-                        Neu generieren
+                        {generatingReportId === report.id ? 'Wird generiert...' : 'Neu generieren'}
                       </button>
                     </div>
                   </div>

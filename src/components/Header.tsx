@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   Bell, 
   Search, 
@@ -27,6 +27,12 @@ type SearchResult = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
+type SearchResultGroup = {
+  label: string;
+  items: SearchResult[];
+  total: number;
+};
+
 interface HeaderProps {
   setCurrentView: (view: ViewType) => void;
 }
@@ -36,18 +42,37 @@ export default function Header({ setCurrentView }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(0);
 
-  const searchResults = useMemo<SearchResult[]>(() => {
+  // Schnelle Direktlinks zu Kernbereichen
+  const quickLinks: SearchResult[] = [
+    { id: 'quick-applications', title: 'Anträge öffnen', subtitle: 'Alle Anträge filtern/bearbeiten', badge: 'Schnellzugriff', view: 'applications', icon: FileText },
+    { id: 'quick-students', title: 'Schülerdaten öffnen', subtitle: 'Suche nach Name/ID', badge: 'Schnellzugriff', view: 'students', icon: Users },
+    { id: 'quick-routes', title: 'Routenplanung öffnen', subtitle: 'Linien & Freistellungen', badge: 'Schnellzugriff', view: 'routes', icon: MapPin },
+    { id: 'quick-contracts', title: 'Unternehmen & Vergaben', subtitle: 'Verträge und Anbieter', badge: 'Schnellzugriff', view: 'contracts', icon: Building2 },
+    { id: 'quick-billing', title: 'Abrechnung öffnen', subtitle: 'Offene/abweichende Rechnungen', badge: 'Schnellzugriff', view: 'billing', icon: Building2 },
+  ];
+
+  const groupedResults = useMemo<SearchResultGroup[]>(() => {
     const query = searchQuery.trim().toLowerCase();
-    if (!query) return [];
+    const groups: SearchResultGroup[] = [];
 
-    const results: SearchResult[] = [];
+    if (!query) {
+      groups.push({ label: 'Schnellzugriff', items: quickLinks, total: quickLinks.length });
+      return groups;
+    }
+
+    const resultsStudents: SearchResult[] = [];
+    const resultsRoutes: SearchResult[] = [];
+    const resultsApplications: SearchResult[] = [];
+    const resultsCompanies: SearchResult[] = [];
+    const resultsBilling: SearchResult[] = [];
 
     // Schüler (Route-Ansicht)
     routeStudents.forEach((student) => {
       const haystack = `${student.name} ${student.id} ${student.school}`.toLowerCase();
       if (haystack.includes(query)) {
-        results.push({
+        resultsStudents.push({
           id: `student-${student.id}`,
           title: student.name,
           subtitle: `${student.school} • Klasse ${student.class}`,
@@ -62,7 +87,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
     routes.forEach((route) => {
       const haystack = `${route.name} ${route.id} ${route.company}`.toLowerCase();
       if (haystack.includes(query)) {
-        results.push({
+        resultsRoutes.push({
           id: `route-${route.id}`,
           title: route.name,
           subtitle: `${route.company} • ${route.type === 'oepnv' ? 'ÖPNV' : 'Freistellung'}`,
@@ -77,7 +102,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
     applications.forEach((application) => {
       const haystack = `${application.studentName} ${application.school} ${application.id}`.toLowerCase();
       if (haystack.includes(query)) {
-        results.push({
+        resultsApplications.push({
           id: `application-${application.id}`,
           title: application.studentName,
           subtitle: `${application.school} • Antrag ${application.id}`,
@@ -92,7 +117,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
     companies.forEach((company, index) => {
       const haystack = `${company.name} ${company.city}`.toLowerCase();
       if (haystack.includes(query)) {
-        results.push({
+        resultsCompanies.push({
           id: `company-${index}`,
           title: company.name,
           subtitle: `${company.city} • ${company.fleet.buses + company.fleet.taxisStandard + company.fleet.taxisAccessible} Fahrzeuge`,
@@ -107,7 +132,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
     billingData.forEach((entry) => {
       const haystack = `${entry.company} ${entry.service} ${entry.month}`.toLowerCase();
       if (haystack.includes(query)) {
-        results.push({
+        resultsBilling.push({
           id: `billing-${entry.id}`,
           title: entry.company,
           subtitle: `${entry.service} • ${entry.month}`,
@@ -118,8 +143,30 @@ export default function Header({ setCurrentView }: HeaderProps) {
       }
     });
 
-    return results.slice(0, 12);
-  }, [searchQuery]);
+    const addGroup = (label: string, items: SearchResult[]) => {
+      if (items.length === 0) return;
+      groups.push({
+        label,
+        items: items.slice(0, 5),
+        total: items.length,
+      });
+    };
+
+    addGroup('Schüler', resultsStudents);
+    addGroup('Routen', resultsRoutes);
+    addGroup('Unternehmen', resultsCompanies);
+    addGroup('Anträge', resultsApplications);
+    addGroup('Abrechnung', resultsBilling);
+
+    return groups;
+  }, [searchQuery, quickLinks]);
+
+  const flattenedResults = groupedResults.flatMap((group) => group.items);
+
+  useEffect(() => {
+    // Clamp aktiven Index, falls weniger Treffer nach neuer Suche
+    setActiveResultIndex((prev) => Math.min(prev, Math.max(flattenedResults.length - 1, 0)));
+  }, [flattenedResults.length]);
 
   const handleSelectResult = (result: SearchResult) => {
     setCurrentView(result.view);
@@ -127,6 +174,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
     setShowSearchResults(false);
     setShowNotifications(false);
     setShowProfileMenu(false);
+    setActiveResultIndex(0);
   };
 
   return (
@@ -141,13 +189,20 @@ export default function Header({ setCurrentView }: HeaderProps) {
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 setShowSearchResults(true);
+                setActiveResultIndex(0);
               }}
               onFocus={() => setShowSearchResults(true)}
               onBlur={() => setTimeout(() => setShowSearchResults(false), 120)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && searchResults.length > 0) {
+                if (e.key === 'ArrowDown') {
                   e.preventDefault();
-                  handleSelectResult(searchResults[0]);
+                  setActiveResultIndex((prev) => Math.min(prev + 1, Math.max(flattenedResults.length - 1, 0)));
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveResultIndex((prev) => Math.max(prev - 1, 0));
+                } else if (e.key === 'Enter' && flattenedResults.length > 0) {
+                  e.preventDefault();
+                  handleSelectResult(flattenedResults[Math.max(activeResultIndex, 0)]);
                 }
               }}
               placeholder="Suchen nach Schüler, Route, Unternehmen..."
@@ -158,6 +213,7 @@ export default function Header({ setCurrentView }: HeaderProps) {
                 onClick={() => {
                   setSearchQuery('');
                   setShowSearchResults(false);
+                  setActiveResultIndex(0);
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
@@ -166,39 +222,92 @@ export default function Header({ setCurrentView }: HeaderProps) {
             )}
 
             {showSearchResults && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-80 overflow-auto">
-                {searchQuery.trim().length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-500">Tippe, um nach Schülern, Routen oder Unternehmen zu suchen</div>
-                ) : searchResults.length === 0 ? (
+              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-96 overflow-auto">
+                {searchQuery.trim().length === 0 && groupedResults.length === 1 && groupedResults[0].label === 'Schnellzugriff' ? (
+                  <div className="py-2">
+                    <div className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Schnellzugriff
+                    </div>
+                    <div className="px-2 space-y-1">
+                      {groupedResults[0].items.map((result, idx) => {
+                        const Icon = result.icon;
+                        const isActive = idx === activeResultIndex;
+                        return (
+                          <button
+                            key={result.id}
+                            className={`w-full px-3 py-2.5 rounded-xl flex items-start gap-3 transition-colors text-left border ${
+                              isActive ? 'bg-cyan-50 border-cyan-100' : 'bg-gray-50/50 border-gray-100 hover:bg-white'
+                            }`}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleSelectResult(result);
+                            }}
+                            onMouseEnter={() => setActiveResultIndex(idx)}
+                          >
+                            <div className={`p-2 rounded-lg ${isActive ? 'bg-cyan-100 text-cyan-700' : 'bg-white text-gray-600'} shadow-sm`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{result.title}</p>
+                              <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
+                            </div>
+                            <span className={`text-[11px] px-2 py-1 rounded-full font-semibold uppercase tracking-wide ${
+                              isActive ? 'bg-cyan-100 text-cyan-700' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {result.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : flattenedResults.length === 0 ? (
                   <div className="px-4 py-3 text-sm text-gray-500">Keine Treffer gefunden</div>
                 ) : (
-                  <div className="py-1">
-                    {searchResults.map((result) => {
-                      const Icon = result.icon;
-                      return (
-                        <button
-                          key={result.id}
-                          className="w-full px-4 py-2.5 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            handleSelectResult(result);
-                          }}
-                        >
-                          <div className="p-2 rounded-lg bg-gray-100 text-gray-600">
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-gray-900 truncate">{result.title}</p>
-                              <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 font-semibold uppercase tracking-wide">
-                                {result.badge}
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <div className="py-1 space-y-2">
+                    {groupedResults.map((group, groupIndex) => (
+                      <div key={group.label}>
+                        <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center justify-between">
+                          <span>{group.label}</span>
+                          {group.total > group.items.length && (
+                            <span className="text-[11px] text-gray-400">Top {group.items.length} von {group.total}</span>
+                          )}
+                        </div>
+                        {group.items.map((result, idx) => {
+                          const globalIndex = groupedResults
+                            .slice(0, groupIndex)
+                            .reduce((acc, g) => acc + g.items.length, 0) + idx;
+                          const Icon = result.icon;
+                          const isActive = globalIndex === activeResultIndex;
+                          return (
+                            <button
+                              key={result.id}
+                              className={`w-full px-4 py-2.5 flex items-start gap-3 transition-colors text-left ${
+                                isActive ? 'bg-cyan-50' : 'hover:bg-gray-50'
+                              }`}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleSelectResult(result);
+                              }}
+                              onMouseEnter={() => setActiveResultIndex(globalIndex)}
+                            >
+                              <div className="p-2 rounded-lg bg-gray-100 text-gray-600">
+                                <Icon className="w-4 h-4" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">{result.title}</p>
+                                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 font-semibold uppercase tracking-wide">
+                                    {result.badge}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-gray-500 truncate">{result.subtitle}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

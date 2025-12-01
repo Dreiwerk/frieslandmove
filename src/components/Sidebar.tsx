@@ -15,6 +15,7 @@ import {
   Bus,
 } from 'lucide-react';
 import { ViewType, MenuItem } from '@/types';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -35,6 +36,7 @@ const menuItems: MenuItem[] = [
 ];
 
 export default function Sidebar({ currentView, setCurrentView, collapsed, setCollapsed }: SidebarProps) {
+  const { brand, tagline } = useTheme();
   return (
     <aside 
       className={`bg-white border-r border-gray-200 flex flex-col transition-all duration-300 ${
@@ -44,13 +46,18 @@ export default function Sidebar({ currentView, setCurrentView, collapsed, setCol
       {/* Logo */}
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+            style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-strong))', boxShadow: '0 10px 20px var(--accent-soft)' }}
+          >
             <Bus className="w-5 h-5 text-white" />
           </div>
           {!collapsed && (
             <div>
-              <h1 className="font-bold text-gray-900 text-lg tracking-tight">FrieslandMove</h1>
-              <p className="text-xs text-gray-500">Schülerbeförderung</p>
+              <h1 className="font-bold text-gray-900 text-lg tracking-tight" style={{ color: 'var(--accent-strong)' }}>
+                {brand}
+              </h1>
+              <p className="text-xs text-gray-500">{tagline}</p>
             </div>
           )}
         </div>
@@ -73,14 +80,23 @@ export default function Sidebar({ currentView, setCurrentView, collapsed, setCol
               }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? 'bg-cyan-50 text-cyan-700 shadow-sm'
+                  ? 'shadow-sm'
                   : isClickable
                     ? 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     : 'text-gray-400 cursor-not-allowed'
               }`}
+              style={
+                isActive
+                  ? {
+                      backgroundColor: 'var(--accent-soft)',
+                      color: 'var(--accent-strong)',
+                      border: '1px solid var(--accent-soft)',
+                    }
+                  : undefined
+              }
               disabled={!isClickable}
             >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-cyan-600' : ''}`} />
+              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : ''}`} style={isActive ? { color: 'var(--accent-strong)' } : undefined} />
               {!collapsed && <span>{item.label}</span>}
               {!collapsed && item.badge && (
                 <span className="ml-auto bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">

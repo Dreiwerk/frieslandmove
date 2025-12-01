@@ -19,12 +19,27 @@ import {
 import { billingData } from '@/lib/data';
 import { BillingEntry, BillingStatus } from '@/types';
 import Toast from '@/components/ui/Toast';
+import Modal from '@/components/ui/Modal';
 
 export default function BillingView() {
   const [filter, setFilter] = useState<'all' | 'offen' | 'abweichung'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [data, setData] = useState<BillingEntry[]>(billingData);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [detailEntry, setDetailEntry] = useState<BillingEntry | null>(null);
+  const [discrepancyEntry, setDiscrepancyEntry] = useState<BillingEntry | null>(null);
+  const [creditForm, setCreditForm] = useState({
+    company: billingData[0]?.company || '',
+    month: billingData[0]?.month || '',
+    amount: '',
+    reason: '',
+  });
+  const [discrepancyForm, setDiscrepancyForm] = useState({
+    note: '',
+    correctedAmount: '',
+    reason: 'Mehrfahrten',
+  });
 
   const filteredData = data.filter(entry => {
     const matchesFilter = filter === 'all' || 
@@ -66,30 +81,104 @@ export default function BillingView() {
   };
 
   const handleExportAccounting = () => {
-    setToast({ message: 'Export für Finanzbuchhaltung wird erstellt...', type: 'info' });
-    setTimeout(() => {
-      setToast({ message: 'DATEV-Export erfolgreich erstellt!', type: 'success' });
-    }, 2000);
+    const headers = ['Unternehmen', 'Monat', 'Leistung', 'Betrag', 'Status'];
+    const rows = data.map((entry) => [
+      `"${entry.company}"`,
+      `"${entry.month}"`,
+      `"${entry.service}"`,
+      entry.amount.toFixed(2).replace('.', ','),
+      entry.status,
+    ]);
+    const csv = [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `abrechnung_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setToast({ message: 'Export erstellt (CSV für FiBu)', type: 'success' });
   };
 
   const handleCreateCredit = () => {
-    setToast({ message: 'Gutschrift-Formular wird geöffnet...', type: 'info' });
-    // In einer echten App würde hier ein Modal geöffnet werden
+    setShowCreditModal(true);
   };
 
-  const handleViewDetails = (company: string) => {
-    setToast({ message: `Details für ${company} werden geladen...`, type: 'info' });
-    // In einer echten App würde hier ein Modal mit Details geöffnet werden
+  const handleViewDetails = (entry: BillingEntry) => {
+    setDetailEntry(entry);
   };
 
   const handleCheckDiscrepancy = (company: string) => {
-    setToast({ message: `Abweichungsprüfung für ${company} wird geöffnet...`, type: 'info' });
-    // In einer echten App würde hier eine detaillierte Prüfansicht geöffnet werden
+    const entry = data.find((e) => e.company === company && e.status === 'abweichung');
+    if (entry) {
+      setDiscrepancyEntry(entry);
+      setDiscrepancyForm({ note: '', correctedAmount: '', reason: 'Mehrfahrten' });
+    } else {
+      setToast({ message: 'Keine Abweichung zu diesem Unternehmen gefunden.', type: 'info' });
+    }
   };
 
   const handleContactCompany = () => {
     setToast({ message: 'E-Mail-Formular wird geöffnet...', type: 'info' });
     // In einer echten App würde hier ein E-Mail-Dialog geöffnet werden
+  };
+
+  const handleSaveCredit = () => {
+    if (!creditForm.company || !creditForm.amount) {
+      setToast({ message: 'Bitte Unternehmen und Betrag ausfüllen', type: 'error' });
+      return;
+    }
+    const parsedAmount = parseFloat(creditForm.amount.replace(',', '.'));
+    if (Number.isNaN(parsedAmount)) {
+      setToast({ message: 'Betrag ist ungültig', type: 'error' });
+      return;
+    }
+
+    const newCredit: BillingEntry = {
+      id: `CR-${Date.now()}`,
+      company: creditForm.company,
+      month: creditForm.month || 'Aktueller Monat',
+      service: creditForm.reason ? `Gutschrift – ${creditForm.reason}` : 'Gutschrift',
+      amount: -Math.abs(parsedAmount),
+      status: 'bezahlt',
+    };
+
+    setData((prev) => [newCredit, ...prev]);
+    setToast({ message: `Gutschrift über ${parsedAmount.toFixed(2)} € erfasst`, type: 'success' });
+    setShowCreditModal(false);
+    setCreditForm({
+      company: billingData[0]?.company || '',
+      month: billingData[0]?.month || '',
+      amount: '',
+      reason: '',
+    });
+  };
+
+  const handleSaveDiscrepancy = () => {
+    if (!discrepancyEntry) return;
+    const corrected = discrepancyForm.correctedAmount
+      ? parseFloat(discrepancyForm.correctedAmount.replace(',', '.'))
+      : null;
+    if (discrepancyForm.correctedAmount && Number.isNaN(corrected)) {
+      setToast({ message: 'Korrekturbetrag ist ungültig', type: 'error' });
+      return;
+    }
+    setData((prev) =>
+      prev.map((e) =>
+        e.id === discrepancyEntry.id
+          ? {
+              ...e,
+              amount: corrected !== null ? corrected : e.amount,
+              status: 'pruefung',
+              service: discrepancyForm.reason ? `${e.service} (${discrepancyForm.reason})` : e.service,
+            }
+          : e
+      )
+    );
+    setToast({ message: 'Abweichung in Prüfung übernommen', type: 'success' });
+    setDiscrepancyEntry(null);
   };
 
   // Calculate summary statistics
@@ -263,7 +352,7 @@ export default function BillingView() {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => handleViewDetails(entry.company)}
+                        onClick={() => handleViewDetails(entry)}
                         className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors"
                         title="Details anzeigen"
                       >
@@ -318,37 +407,69 @@ export default function BillingView() {
         </div>
       </div>
 
-      {/* Discrepancy Alert */}
-      {discrepancyCount > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-5 animate-fade-in">
-          <div className="flex items-start gap-4">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-            </div>
-            <div className="flex-1">
-              <h4 className="font-semibold text-red-900">Abweichung erkannt: Taxi-Unternehmen Müller</h4>
-              <p className="text-sm text-red-700 mt-1">
-                Die gemeldeten Fahrten (248) weichen von den geplanten Fahrten (235) ab. 
-                Differenz: 13 zusätzliche Fahrten (+€650,00). Bitte prüfen Sie die Abweichung.
-              </p>
-              <div className="flex items-center gap-3 mt-3">
-                <button
-                  onClick={() => handleCheckDiscrepancy('Taxi-Unternehmen Müller')}
-                  className="px-4 py-2 bg-red-600 rounded-lg text-sm font-medium text-white hover:bg-red-700 transition-colors"
-                >
-                  Abweichung prüfen
-                </button>
-                <button
-                  onClick={handleContactCompany}
-                  className="px-4 py-2 bg-white border border-red-200 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
-                >
-                  Unternehmen kontaktieren
-                </button>
-              </div>
-            </div>
+      {/* Credit Modal */}
+      <Modal
+        isOpen={showCreditModal}
+        onClose={() => setShowCreditModal(false)}
+        title="Gutschrift erstellen"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setShowCreditModal(false)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              onClick={handleSaveCredit}
+              className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-600/20"
+            >
+              Speichern
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Unternehmen</label>
+            <input
+              value={creditForm.company}
+              onChange={(e) => setCreditForm({ ...creditForm, company: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monat</label>
+            <input
+              value={creditForm.month}
+              onChange={(e) => setCreditForm({ ...creditForm, month: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Betrag (€)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={creditForm.amount}
+              onChange={(e) => setCreditForm({ ...creditForm, amount: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Grund</label>
+            <textarea
+              value={creditForm.reason}
+              onChange={(e) => setCreditForm({ ...creditForm, reason: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              rows={3}
+              placeholder="z.B. Abweichung korrigieren"
+            />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Toast Notifications */}
       {toast && (
@@ -359,6 +480,144 @@ export default function BillingView() {
           onClose={() => setToast(null)}
         />
       )}
+
+      {/* Detail Modal */}
+      <Modal
+        isOpen={!!detailEntry}
+        onClose={() => setDetailEntry(null)}
+        title="Abrechnungsdetails"
+        size="md"
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setDetailEntry(null)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Schließen
+            </button>
+          </div>
+        }
+      >
+        {detailEntry && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-gray-500" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{detailEntry.month}</p>
+                <p className="text-lg font-semibold text-gray-900">{detailEntry.company}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-gray-500 mb-1">Leistung</p>
+                <p className="font-medium text-gray-900">{detailEntry.service}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-gray-500 mb-1">Betrag</p>
+                <p className="font-semibold text-gray-900">€{detailEntry.amount.toLocaleString('de-DE', { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">Status:</span>
+              {getStatusBadge(detailEntry.status)}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Discrepancy Modal */}
+      <Modal
+        isOpen={!!discrepancyEntry}
+        onClose={() => setDiscrepancyEntry(null)}
+        title="Abweichung prüfen"
+        size="md"
+        footer={
+          <div className="flex items-center justify-between gap-2 w-full">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700">Schritt 1: prüfen</span>
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700">Schritt 2: korrigieren</span>
+              <span className="px-2 py-1 rounded-full bg-gray-100 text-gray-700">Schritt 3: übernehmen</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setDiscrepancyEntry(null)}
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleSaveDiscrepancy}
+                className="px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-600/20"
+              >
+                In Prüfung übernehmen
+              </button>
+            </div>
+          </div>
+        }
+      >
+        {discrepancyEntry && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">{discrepancyEntry.month}</p>
+                <p className="text-lg font-semibold text-gray-900">{discrepancyEntry.company}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-gray-500 mb-1">Leistung</p>
+                <p className="font-medium text-gray-900">{discrepancyEntry.service}</p>
+              </div>
+              <div className="md:text-right">
+                <p className="text-gray-500 mb-1">Gemeldeter Betrag</p>
+                <p className="font-semibold text-gray-900">€{discrepancyEntry.amount.toLocaleString('de-DE', { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Abweichungsgrund</label>
+                <select
+                  value={discrepancyForm.reason}
+                  onChange={(e) => setDiscrepancyForm({ ...discrepancyForm, reason: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                >
+                  <option value="Mehrfahrten">Mehrfahrten</option>
+                  <option value="Wenigerfahrten">Wenigerfahrten</option>
+                  <option value="Preisabweichung">Preisabweichung</option>
+                  <option value="Sonstiges">Sonstiges</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Korrekturbetrag (€)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={discrepancyForm.correctedAmount}
+                  onChange={(e) => setDiscrepancyForm({ ...discrepancyForm, correctedAmount: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="z.B. 12450,00"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Notiz zur Abweichung</label>
+              <textarea
+                value={discrepancyForm.note}
+                onChange={(e) => setDiscrepancyForm({ ...discrepancyForm, note: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                rows={3}
+                placeholder="Abweichung dokumentieren..."
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

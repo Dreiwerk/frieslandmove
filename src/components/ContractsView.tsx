@@ -18,6 +18,9 @@ import {
   FileText,
   Shield,
   Truck,
+  MapPin,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import Toast from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
@@ -194,7 +197,12 @@ export default function ContractsView() {
         {/* Tabs */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setActiveTab('contracts')}
+            type="button"
+            onClick={() => {
+              setActiveTab('contracts');
+              setSelectedContract(null);
+              setSearchQuery('');
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'contracts'
                 ? 'bg-cyan-50 text-cyan-700'
@@ -204,7 +212,12 @@ export default function ContractsView() {
             Verträge
           </button>
           <button
-            onClick={() => setActiveTab('procurement')}
+            type="button"
+            onClick={() => {
+              setActiveTab('procurement');
+              setSelectedContract(null);
+              setSearchQuery('');
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'procurement'
                 ? 'bg-cyan-50 text-cyan-700'
@@ -214,7 +227,12 @@ export default function ContractsView() {
             Vergabeverfahren
           </button>
           <button
-            onClick={() => setActiveTab('companies')}
+            type="button"
+            onClick={() => {
+              setActiveTab('companies');
+              setSelectedContract(null);
+              setSearchQuery('');
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === 'companies'
                 ? 'bg-cyan-50 text-cyan-700'

@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { currentUser } from '@/lib/data';
 import Toast from '@/components/ui/Toast';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<'profile' | 'system' | 'users'>('profile');
@@ -59,6 +60,8 @@ export default function SettingsView() {
     setToast({ message: 'Benutzer-Formular wird geöffnet...', type: 'info' });
     // In einer echten App würde hier ein Modal geöffnet werden
   };
+
+  const { accent, setAccent, brand, setBrand, tagline, setTagline } = useTheme();
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -232,6 +235,51 @@ export default function SettingsView() {
           {/* System Tab */}
           {activeTab === 'system' && (
             <div className="max-w-3xl space-y-5">
+              {/* Branding / Maske */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Corporate Identity / Maske</h3>
+                    <p className="text-sm text-gray-500">
+                      Passe Branding und Akzentfarbe der gesamten Anwendung an (Vorgabe Vergabestelle).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm text-gray-600">Akzentfarbe</label>
+                    <input
+                      type="color"
+                      value={accent}
+                      onChange={(e) => setAccent(e.target.value)}
+                      className="w-10 h-10 rounded border border-gray-200 p-1 bg-white"
+                      aria-label="Akzentfarbe wählen"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Anwendungsname</label>
+                    <input
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      placeholder="FrieslandMove"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unterzeile / Zweck</label>
+                    <input
+                      value={tagline}
+                      onChange={(e) => setTagline(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                      placeholder="Schülerbeförderung"
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 text-xs text-gray-500">
+                  Änderungen wirken sofort global (Sidebar, Buttons, Routenplaner). Exportiere Screenshots mit CI-konformen Farben.
+                </div>
+              </div>
+
               {/* School Year */}
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
