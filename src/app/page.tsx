@@ -106,7 +106,7 @@ export default function Home() {
       case 'reports':
         return <ReportsView />;
       case 'settings':
-        return <SettingsView onNavigateToSettings={(tab) => setCurrentView('settings')} />;
+        return <SettingsView />;
       case 'notifications':
         return <NotificationsView />;
       default:

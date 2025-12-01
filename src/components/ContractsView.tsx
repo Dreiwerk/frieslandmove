@@ -25,6 +25,36 @@ import {
 import Toast from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 
+// Types
+type ProcurementStatus = 'vorbereitung' | 'ausschreibung' | 'pruefung' | 'vergeben';
+type ProcurementType = 'offen' | 'beschraenkt';
+
+interface Bid {
+  id: string;
+  company: string;
+  submittedDate: string;
+  priceScore: number;
+  qualityScore: number;
+  presentationScore: number;
+  totalScore: number;
+  pricePerKm: number;
+  annualCost: number;
+}
+
+interface Procurement {
+  id: string;
+  title: string;
+  type: ProcurementType;
+  status: ProcurementStatus;
+  estimatedValue: number;
+  routes: string[];
+  documents: string[];
+  bids: Bid[];
+  createdAt: string;
+  publishDate?: string;
+  submissionDeadline?: string;
+}
+
 // Mock data
 const mockCompanies = [
   {
@@ -104,12 +134,12 @@ const mockContracts = [
   },
 ];
 
-const mockProcurements = [
+const mockProcurements: Procurement[] = [
   {
     id: 'VERG-2025-001',
     title: 'Schülerbeförderung Schuljahr 2025/2026 - Freistellungsverkehr Nord',
-    type: 'offen' as const,
-    status: 'vorbereitung' as const,
+    type: 'offen',
+    status: 'vorbereitung',
     estimatedValue: 185000,
     routes: ['Route 1-15'],
     documents: [],
@@ -119,8 +149,8 @@ const mockProcurements = [
   {
     id: 'VERG-2024-003',
     title: 'Barrierefreie Beförderung - Sonderfahrten',
-    type: 'beschraenkt' as const,
-    status: 'ausschreibung' as const,
+    type: 'beschraenkt',
+    status: 'ausschreibung',
     publishDate: '2024-11-15',
     submissionDeadline: '2024-12-15',
     estimatedValue: 95000,

@@ -1,14 +1,24 @@
-import { Student, Application, Route, BillingEntry, Warning } from '@/types';
+import { Application, Route, BillingEntry, Warning } from '@/types';
+
+// Simplified Student Type for Route Planning
+export interface SimpleRouteStudent {
+  id: string;
+  name: string;
+  school: string;
+  class: string;
+  accessibility: string[];
+}
 
 // Current User
 export const currentUser = {
   name: 'Stefanie Pflug',
   role: 'Sachbearbeiterin',
   initials: 'SP',
+  email: 's.pflug@friesland.de',
 };
 
 // Students on Route 12
-export const routeStudents: Student[] = [
+export const routeStudents: SimpleRouteStudent[] = [
   { id: '1', name: 'Finn Behrens', school: 'Förderschule Jever', class: '7b', accessibility: ['Rollstuhl'] },
   { id: '2', name: 'Mia Hoffmann', school: 'Förderschule Jever', class: '5a', accessibility: ['Begleitperson'] },
   { id: '3', name: 'Luca Martens', school: 'Förderschule Jever', class: '8c', accessibility: [] },
@@ -82,7 +92,7 @@ export const routes: Route[] = [
     id: 'route-12',
     name: 'Route 12 - Jever Nord',
     type: 'freistellung',
-    students: routeStudents,
+    students: routeStudents as any, // Simplified students for route planner
     totalKm: 23.4,
     costPerDay: 142,
     startTime: '07:15',

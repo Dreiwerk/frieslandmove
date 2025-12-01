@@ -96,7 +96,7 @@ export default function Sidebar({ currentView, setCurrentView, collapsed, setCol
               }
               disabled={!isClickable}
             >
-              <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : ''}`} style={isActive ? { color: 'var(--accent-strong)' } : undefined} />
+              <Icon className={`w-5 h-5 flex-shrink-0`} />
               {!collapsed && <span>{item.label}</span>}
               {!collapsed && item.badge && (
                 <span className="ml-auto bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">
