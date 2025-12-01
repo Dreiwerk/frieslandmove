@@ -21,6 +21,7 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authReady, setAuthReady] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
+  const [authTransitioning, setAuthTransitioning] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [email, setEmail] = useState('stefanie.pflug@friesland.de');
   const [password, setPassword] = useState('');
@@ -37,13 +38,21 @@ export default function Home() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
+    // Phase 1: form loading, then launch immersive transition
     setTimeout(() => {
       setAuthLoading(false);
-      setIsAuthenticated(true);
+      setAuthTransitioning(true);
       setShowSuccess(true);
-      localStorage.setItem('frieslandmove-auth', 'true');
-      setTimeout(() => setShowSuccess(false), 1200);
-    }, 1000);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('frieslandmove-auth', 'true');
+      }
+      // Phase 2: complete transition into app
+      setTimeout(() => {
+        setIsAuthenticated(true);
+        setAuthTransitioning(false);
+        setTimeout(() => setShowSuccess(false), 800);
+      }, 900);
+    }, 700);
   };
 
   const handleLogout = () => {
@@ -111,8 +120,23 @@ export default function Home() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center px-6">
-        <div className="max-w-4xl w-full bg-white shadow-2xl rounded-2xl border border-gray-100 grid grid-cols-2 overflow-hidden">
+      <div className="relative min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center px-6 overflow-hidden">
+        {authTransitioning && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="relative w-32 h-32">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-cyan-500 opacity-50 blur-xl animate-pulse" />
+              <div className="absolute inset-4 border-[6px] border-white/70 rounded-full shadow-lg animate-[spin_1.4s_linear_infinite]" />
+              <div className="absolute inset-7 rounded-full bg-white flex items-center justify-center text-cyan-600 font-semibold animate-[pulse_1.6s_ease-in-out_infinite]">
+                FM
+              </div>
+            </div>
+          </div>
+        )}
+        <div
+          className={`max-w-4xl w-full bg-white shadow-2xl rounded-2xl border border-gray-100 grid grid-cols-2 overflow-hidden transition-all duration-700 ease-in-out ${
+            authTransitioning ? '-translate-y-24 scale-95 rotate-1 opacity-0 blur-sm' : 'opacity-100'
+          }`}
+        >
           <div className="p-8 bg-gradient-to-br from-cyan-500 via-blue-500 to-blue-600 text-white relative">
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_20%_20%,white,transparent_35%)]" />
             <div className="relative space-y-6">
