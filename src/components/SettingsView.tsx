@@ -75,9 +75,9 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Navigation */}
-        <div className="w-64 bg-white border-r border-gray-200 p-4">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        {/* Sidebar Navigation - Hidden on mobile */}
+        <div className="hidden md:block md:w-64 bg-white border-r border-gray-200 p-4">
           <nav className="space-y-1">
             <button
               onClick={() => setActiveTab('profile')}
@@ -115,8 +115,21 @@ export default function SettingsView() {
           </nav>
         </div>
 
+        {/* Mobile Navigation */}
+        <div className="md:hidden bg-white border-b border-gray-200 p-3">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as any)}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+          >
+            <option value="profile">Profil & Konto</option>
+            <option value="system">Systemeinstellungen</option>
+            <option value="users">Benutzerverwaltung</option>
+          </select>
+        </div>
+
         {/* Content */}
-        <div className="flex-1 overflow-auto p-5">
+        <div className="flex-1 overflow-auto p-3 md:p-5">
           {/* Profile Tab */}
           {activeTab === 'profile' && (
             <div className="max-w-3xl space-y-5">
@@ -255,7 +268,7 @@ export default function SettingsView() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Anwendungsname</label>
                     <input
@@ -294,7 +307,7 @@ export default function SettingsView() {
                       <option>2025/2026</option>
                     </select>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Beginn</label>
                       <input
@@ -485,7 +498,7 @@ export default function SettingsView() {
               {/* Roles Info */}
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Rollenübersicht</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <h4 className="font-semibold text-blue-900 mb-2">Administrator</h4>
                     <p className="text-sm text-blue-700">Voller Zugriff auf alle Funktionen und Einstellungen</p>

@@ -158,47 +158,50 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
   });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6">
       {/* Welcome Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Willkommen zurück, Stefanie Pflug</h2>
-          <p className="text-gray-500 mt-1">Hier ist Ihre Übersicht für heute, {currentDate}</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Willkommen zurück, Stefanie Pflug</h2>
+          <p className="text-sm md:text-base text-gray-500 mt-1" suppressHydrationWarning>Hier ist Ihre Übersicht für heute, {currentDate}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <button
             onClick={() => setEditMode((prev) => !prev)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border ${
+            className={`px-3 md:px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 border ${
               editMode
                 ? 'bg-cyan-50 text-cyan-700 border-cyan-100'
                 : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
             }`}
           >
             <Layout className="w-4 h-4" />
-            {editMode ? 'Bearbeiten aktiv' : 'Dashboard bearbeiten'}
+            <span className="hidden sm:inline">{editMode ? 'Bearbeiten aktiv' : 'Dashboard bearbeiten'}</span>
+            <span className="sm:hidden">{editMode ? 'Aktiv' : 'Bearbeiten'}</span>
           </button>
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+            className="px-3 md:px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
-            Bericht exportieren
+            <span className="hidden sm:inline">Bericht exportieren</span>
+            <span className="sm:hidden">Export</span>
           </button>
           <button
             onClick={handleNewApplication}
-            className="px-4 py-2 bg-cyan-600 rounded-lg text-sm font-medium text-white hover:bg-cyan-700 transition-colors flex items-center gap-2 shadow-lg shadow-cyan-600/20"
+            className="px-3 md:px-4 py-2 bg-cyan-600 rounded-lg text-sm font-medium text-white hover:bg-cyan-700 transition-colors flex items-center gap-2 shadow-lg shadow-cyan-600/20"
           >
             <Plus className="w-4 h-4" />
-            Neuer Antrag
+            <span className="hidden sm:inline">Neuer Antrag</span>
+            <span className="sm:hidden">Antrag</span>
           </button>
         </div>
       </div>
 
       {editMode && (
-        <div className="flex items-center justify-between p-3 bg-cyan-50 border border-cyan-100 rounded-xl">
-          <div className="flex items-center gap-2 text-sm text-cyan-800 font-semibold">
-            <Eye className="w-4 h-4" />
-            Edit-Modus: Klick auf Widgets blendet sie aus. Wiederherstellen über „Verfügbare Widgets“ oder „Alle einblenden“.
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-cyan-50 border border-cyan-100 rounded-xl">
+          <div className="flex items-center gap-2 text-xs md:text-sm text-cyan-800 font-semibold">
+            <Eye className="w-4 h-4 flex-shrink-0" />
+            <span>Edit-Modus: Klick auf Widgets blendet sie aus. Wiederherstellen über „Verfügbare Widgets" oder „Alle einblenden".</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -253,7 +256,7 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {metricOrder
           .filter((id) => !hiddenWidgets.includes(id))
           .map((id) => {
@@ -333,7 +336,7 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
       </div>
 
       {/* Main Content Grid (draggable in edit mode) */}
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {sectionOrder.filter((id) => !hiddenWidgets.includes(id)).map((id) => (
           <React.Fragment key={id}>
             {id === 'warnings' && (
@@ -350,7 +353,7 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
                     setDragSectionId(null);
                   }
                 }}
-                className={`col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden relative ${editMode ? 'border-dashed border-cyan-200' : ''}`}
+                className={`lg:col-span-2 bg-white rounded-xl border border-gray-200 overflow-hidden relative ${editMode ? 'border-dashed border-cyan-200' : ''}`}
               >
                 {editMode && (
                   <>
@@ -508,52 +511,54 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
                     setDragSectionId(null);
                   }
                 }}
-                className={`bg-white rounded-xl border border-gray-200 overflow-hidden relative ${editMode ? 'border-dashed border-cyan-200' : ''} col-span-3`}
+                className={`bg-white rounded-xl border border-gray-200 overflow-hidden relative ${editMode ? 'border-dashed border-cyan-200' : ''} lg:col-span-3`}
               >
                 {editMode && (
                   <>
                     <button
                       onClick={() => toggleWidget('recent')}
-                      className="absolute top-2 right-2 p-1 rounded-md bg-white/80 border border-gray-200 hover:bg-gray-50 text-gray-500"
+                      className="absolute top-2 right-2 p-1 rounded-md bg-white/80 border border-gray-200 hover:bg-gray-50 text-gray-500 z-10"
                     >
                       <EyeOff className="w-4 h-4" />
                     </button>
-                    <div className="absolute top-2 left-2 text-[11px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded flex items-center gap-1">
+                    <div className="absolute top-2 left-2 text-[11px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded flex items-center gap-1 z-10">
                       <GripVertical className="w-3 h-3" />
-                      Drag/Drop & Klick zum Ausblenden
+                      <span className="hidden md:inline">Drag/Drop & Klick zum Ausblenden</span>
                     </div>
                   </>
                 )}
 
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="px-3 md:px-5 py-3 md:py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <h3 className="font-semibold text-gray-900">Neueste Anträge</h3>
                   <button
                     onClick={handleGoToApplications}
                     className="text-sm text-cyan-600 font-medium hover:text-cyan-700 transition-colors flex items-center gap-1"
                   >
-                    Zur Antragsverwaltung
+                    <span className="hidden sm:inline">Zur Antragsverwaltung</span>
+                    <span className="sm:hidden">Alle anzeigen</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Schüler</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Schule</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Eingangsdatum</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Aktion</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Schüler</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Schule</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Eingangsdatum</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                      <th className="px-3 md:px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Aktion</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {recentApplications.map((item, index) => (
                       <tr key={index} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-4">
-                          <span className="font-medium text-gray-900">{item.name}</span>
+                        <td className="px-3 md:px-5 py-3 md:py-4 whitespace-nowrap">
+                          <span className="font-medium text-gray-900 text-sm">{item.name}</span>
                         </td>
-                        <td className="px-5 py-4 text-sm text-gray-600">{item.school}</td>
-                        <td className="px-5 py-4 text-sm text-gray-600">{item.date}</td>
-                        <td className="px-5 py-4">
+                        <td className="px-3 md:px-5 py-3 md:py-4 text-sm text-gray-600 whitespace-nowrap">{item.school}</td>
+                        <td className="px-3 md:px-5 py-3 md:py-4 text-sm text-gray-600 whitespace-nowrap">{item.date}</td>
+                        <td className="px-3 md:px-5 py-3 md:py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                             item.status === 'genehmigt' ? 'bg-emerald-50 text-emerald-700' :
                             item.status === 'pruefung' ? 'bg-amber-50 text-amber-700' :
@@ -569,7 +574,7 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
                              item.status === 'eingang' ? 'Eingang' : 'Abgelehnt'}
                           </span>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-3 md:px-5 py-3 md:py-4 whitespace-nowrap">
                           <button className="p-2 text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors">
                             <Eye className="w-4 h-4" />
                           </button>
@@ -578,6 +583,7 @@ export default function DashboardView({ onNavigateToApplications, onNavigateToAp
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </React.Fragment>

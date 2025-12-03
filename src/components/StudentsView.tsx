@@ -195,25 +195,26 @@ export default function StudentsView() {
   const allStudentsLoaded = loadSize >= fullTotalStudents;
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col md:flex-row">
       {/* Left Panel - Students List */}
-      <div className="flex-1 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+      <div className="flex-1 bg-white md:border-r border-gray-200 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="p-5 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-3 md:p-5 border-b border-gray-100">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Schülerdaten</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {filteredStudents.length.toLocaleString('de-DE')} von {loadedStudentsDisplay.toLocaleString('de-DE')} geladenen Schülern angezeigt
-                <span className="text-gray-400"> (Gesamt {totalStudentsDisplay.toLocaleString('de-DE')})</span>
+              <h2 className="text-base md:text-lg font-bold text-gray-900">Schülerdaten</h2>
+              <p className="text-xs md:text-sm text-gray-500 mt-1">
+                {filteredStudents.length.toLocaleString('de-DE')} von {loadedStudentsDisplay.toLocaleString('de-DE')} geladen
+                <span className="text-gray-400 hidden sm:inline"> (Gesamt {totalStudentsDisplay.toLocaleString('de-DE')})</span>
               </p>
             </div>
             <button
               onClick={handleAddStudent}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-600/20"
+              className="flex items-center gap-2 px-3 md:px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors shadow-lg shadow-cyan-600/20 text-sm whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
-              Schüler anlegen
+              <span className="hidden sm:inline">Schüler anlegen</span>
+              <span className="sm:hidden">Anlegen</span>
             </button>
           </div>
 
@@ -358,7 +359,15 @@ export default function StudentsView() {
 
       {/* Right Panel - Student Details */}
       {selectedStudent ? (
-        <div className="w-96 bg-white flex flex-col overflow-hidden">
+        <>
+          {/* Mobile Overlay Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setSelectedStudent(null)}
+          />
+
+          {/* Detail Panel - Full screen on mobile, side panel on desktop */}
+          <div className="fixed md:relative inset-0 md:inset-auto md:w-96 bg-white flex flex-col overflow-hidden z-50">
           {(() => {
             // choose current student view
             const student = isEditMode && editableStudent ? editableStudent : selectedStudent;
@@ -386,7 +395,7 @@ export default function StudentsView() {
             </div>
             <div className="flex items-center gap-2 text-sm text-cyan-100">
               <Calendar className="w-4 h-4" />
-              <span>Geboren: {new Date(student.dateOfBirth).toLocaleDateString('de-DE')}</span>
+              <span suppressHydrationWarning>Geboren: {new Date(student.dateOfBirth).toLocaleDateString('de-DE')}</span>
             </div>
           </div>
 
@@ -639,7 +648,7 @@ export default function StudentsView() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500" suppressHydrationWarning>
                             {new Date(doc.uploadDate).toLocaleDateString('de-DE')} • {(doc.fileSize / 1000).toFixed(0)} KB
                           </p>
                         </div>
@@ -684,8 +693,9 @@ export default function StudentsView() {
             );
           })()}
         </div>
+        </>
       ) : (
-        <div className="w-96 bg-gray-50 flex items-center justify-center">
+        <div className="hidden md:flex md:w-96 bg-gray-50 items-center justify-center">
           <div className="text-center">
             <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-sm">Wähle einen Schüler aus,</p>
@@ -718,7 +728,7 @@ export default function StudentsView() {
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vorname *</label>
               <input
@@ -848,7 +858,7 @@ export default function StudentsView() {
               <option>Oberschule Varel</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Klasse *</label>
               <input

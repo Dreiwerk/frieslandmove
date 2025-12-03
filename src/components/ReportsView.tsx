@@ -362,7 +362,7 @@ startxref
         {activeTab === 'analytics' && (
           <div className="space-y-5">
             {/* KPI Cards */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {kpiData.map((kpi, index) => {
                 const Icon = kpi.icon;
                 return (
@@ -396,7 +396,7 @@ startxref
             </div>
 
             {/* Charts Row 1 */}
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Trend Chart */}
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center justify-between mb-4">
@@ -523,7 +523,7 @@ startxref
             </div>
 
             {/* Cost Analysis */}
-            <div className="grid grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <div className="bg-white rounded-xl border border-gray-200 p-5">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 bg-green-100 rounded-lg">
@@ -618,7 +618,7 @@ startxref
             </div>
 
             {/* Reports Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredReports.map((report) => {
                 const Icon = report.icon;
                 return (
@@ -631,7 +631,7 @@ startxref
                         <h3 className="font-semibold text-gray-900 mb-1">{report.name}</h3>
                         <p className="text-sm text-gray-500 mb-3">{report.description}</p>
                         <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1" suppressHydrationWarning>
                             <Calendar className="w-3 h-3" />
                             {new Date(report.lastGenerated).toLocaleDateString('de-DE')}
                           </span>

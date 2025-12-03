@@ -179,11 +179,11 @@ export default function Header({ setCurrentView, onLogout }: HeaderProps) {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 relative">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="relative w-80">
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+    <header className="bg-white border-b border-gray-200 px-3 md:px-6 py-3 md:py-4 relative">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+          <div className="relative w-full max-w-xs md:max-w-md lg:w-80">
+            <Search className="w-4 h-4 md:w-5 md:h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
@@ -206,8 +206,8 @@ export default function Header({ setCurrentView, onLogout }: HeaderProps) {
                   handleSelectResult(flattenedResults[Math.max(activeResultIndex, 0)]);
                 }
               }}
-              placeholder="Suchen nach Schüler, Route, Unternehmen..."
-              className="pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-80 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
+              placeholder="Suchen..."
+              className="pl-9 md:pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm w-full focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition-all"
             />
             {searchQuery && (
               <button 
@@ -223,7 +223,7 @@ export default function Header({ setCurrentView, onLogout }: HeaderProps) {
             )}
 
             {showSearchResults && (
-              <div className="absolute left-0 right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-96 overflow-auto">
+              <div className="absolute left-0 right-0 md:right-auto md:w-96 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-[70vh] md:max-h-96 overflow-auto">
                 {searchQuery.trim().length === 0 && groupedResults.length === 1 && groupedResults[0].label === 'Schnellzugriff' ? (
                   <div className="py-2">
                     <div className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
@@ -315,20 +315,20 @@ export default function Header({ setCurrentView, onLogout }: HeaderProps) {
             )}
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {/* Notifications */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <Bell className="w-5 h-5" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
-            
+
             {/* Notifications Dropdown */}
             {showNotifications && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-fade-in">
+              <div className="absolute right-0 top-full mt-2 w-screen max-w-sm md:w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-fade-in">
                 <div className="p-4 border-b border-gray-100">
                   <h3 className="font-semibold text-gray-900">Benachrichtigungen</h3>
                 </div>
@@ -365,27 +365,27 @@ export default function Header({ setCurrentView, onLogout }: HeaderProps) {
             )}
           </div>
           
-          <div className="h-8 w-px bg-gray-200"></div>
+          <div className="h-8 w-px bg-gray-200 hidden md:block"></div>
 
           {/* User Profile */}
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition-colors"
+              className="flex items-center gap-2 md:gap-3 hover:bg-gray-50 rounded-lg px-2 md:px-3 py-2 transition-colors"
             >
-              <div className="w-9 h-9 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg shadow-cyan-500/20">
+              <div className="w-8 h-8 md:w-9 md:h-9 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-semibold text-sm shadow-lg shadow-cyan-500/20">
                 {currentUser.initials}
               </div>
-              <div className="text-right">
+              <div className="text-right hidden md:block">
                 <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
                 <p className="text-xs text-gray-500">{currentUser.role}</p>
               </div>
-              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showProfileMenu ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform hidden md:block ${showProfileMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Profile Dropdown */}
             {showProfileMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-fade-in">
+              <div className="absolute right-0 top-full mt-2 w-screen max-w-xs md:w-56 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-fade-in">
                 <div className="p-3 border-b border-gray-100">
                   <p className="text-sm font-medium text-gray-900">{currentUser.name}</p>
                   <p className="text-xs text-gray-500">{currentUser.email}</p>

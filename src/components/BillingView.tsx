@@ -191,7 +191,7 @@ export default function BillingView() {
   const discrepancyCount = data.filter(e => e.status === 'abweichung').length;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 md:p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -224,7 +224,7 @@ export default function BillingView() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-lg hover:shadow-gray-100 transition-all cursor-pointer">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2.5 bg-blue-50 rounded-xl">
@@ -509,7 +509,7 @@ export default function BillingView() {
                 <p className="text-lg font-semibold text-gray-900">{detailEntry.company}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-gray-500 mb-1">Leistung</p>
                 <p className="font-medium text-gray-900">{detailEntry.service}</p>
@@ -568,7 +568,7 @@ export default function BillingView() {
                 <p className="text-lg font-semibold text-gray-900">{discrepancyEntry.company}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div>
                 <p className="text-gray-500 mb-1">Leistung</p>
                 <p className="font-medium text-gray-900">{discrepancyEntry.service}</p>
@@ -578,7 +578,7 @@ export default function BillingView() {
                 <p className="font-semibold text-gray-900">€{discrepancyEntry.amount.toLocaleString('de-DE', { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 gap-3 text-sm">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Abweichungsgrund</label>
                 <select

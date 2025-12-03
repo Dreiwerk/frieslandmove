@@ -303,7 +303,7 @@ export default function ContractsView() {
         {activeTab === 'contracts' && (
           <div className="space-y-4">
             {/* Stats */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
@@ -406,7 +406,7 @@ export default function ContractsView() {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm text-gray-900">
+                          <div className="text-sm text-gray-900" suppressHydrationWarning>
                             {new Date(contract.startDate).toLocaleDateString('de-DE')} - {new Date(contract.endDate).toLocaleDateString('de-DE')}
                           </div>
                           <div className="text-xs text-gray-500">Kündigungsfrist: {contract.cancellationPeriod} Monate</div>
@@ -473,16 +473,16 @@ export default function ContractsView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs text-gray-500 mb-1">Veröffentlichung</p>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                       {proc.publishDate ? new Date(proc.publishDate).toLocaleDateString('de-DE') : 'In Vorbereitung'}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-3">
                     <p className="text-xs text-gray-500 mb-1">Angebotsfrist</p>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                       {proc.submissionDeadline ? new Date(proc.submissionDeadline).toLocaleDateString('de-DE') : '-'}
                     </p>
                   </div>
@@ -505,7 +505,7 @@ export default function ContractsView() {
                               <span className="text-sm font-bold text-gray-900">{bid.totalScore} Punkte</span>
                             </div>
                           </div>
-                          <div className="grid grid-cols-4 gap-3 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                             <div>
                               <span className="text-gray-500">Preis (30%):</span>
                               <span className="ml-1 font-medium text-gray-900">{bid.priceScore}</span>
@@ -551,7 +551,7 @@ export default function ContractsView() {
 
         {/* Companies Tab */}
         {activeTab === 'companies' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-1 md:grid-cols-2 gap-4">
             {mockCompanies.map((company) => (
               <div key={company.id} className="bg-white rounded-xl border border-gray-200 p-5">
                 <div className="flex items-start justify-between mb-4">
@@ -585,7 +585,7 @@ export default function ContractsView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <Truck className="w-4 h-4 text-gray-500" />
@@ -670,7 +670,7 @@ export default function ContractsView() {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vergabeart *</label>
               <select className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">
@@ -689,7 +689,7 @@ export default function ContractsView() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vertragsbeginn</label>
               <input

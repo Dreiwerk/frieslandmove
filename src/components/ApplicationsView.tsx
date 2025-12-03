@@ -203,25 +203,25 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
   };
 
   return (
-    <div className="h-full flex">
+    <div className="h-full flex flex-col md:flex-row">
       {/* Kanban Board */}
-      <div className="flex-1 p-6 overflow-x-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="flex-1 p-3 md:p-6 overflow-x-auto">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-0 mb-4 md:mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Antragsverwaltung</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Digitaler Antragsworkflow für Schülerbeförderung
-              <span className="mx-2">•</span>
-              <span className="text-cyan-600 font-medium">Tipp: Karten per Drag & Drop verschieben</span>
+            <h2 className="text-lg md:text-xl font-bold text-gray-900">Antragsverwaltung</h2>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">
+              <span className="block md:inline">Digitaler Antragsworkflow für Schülerbeförderung</span>
+              <span className="mx-2 hidden md:inline">•</span>
+              <span className="text-cyan-600 font-medium hidden lg:inline">Tipp: Karten per Drag & Drop verschieben</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3 flex-wrap">
             <button
               onClick={handleFilter}
-              className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 relative"
+              className="px-3 md:px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2 relative"
             >
               <Filter className="w-4 h-4" />
-              Filter
+              <span className="hidden sm:inline">Filter</span>
               {activeFilterCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-cyan-600 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
                   {activeFilterCount}
@@ -230,18 +230,19 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
             </button>
             <button
               onClick={handleNewApplication}
-              className="px-4 py-2 bg-cyan-600 rounded-lg text-sm font-medium text-white hover:bg-cyan-700 transition-colors flex items-center gap-2 shadow-lg shadow-cyan-600/20"
+              className="px-3 md:px-4 py-2 bg-cyan-600 rounded-lg text-sm font-medium text-white hover:bg-cyan-700 transition-colors flex items-center gap-2 shadow-lg shadow-cyan-600/20"
             >
               <Plus className="w-4 h-4" />
-              Neuer Antrag
+              <span className="hidden sm:inline">Neuer Antrag</span>
+              <span className="sm:hidden">Antrag</span>
             </button>
-            <div className="relative">
+            <div className="relative hidden lg:block">
               <button
                 onClick={() => setShowColumnConfig(!showColumnConfig)}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
               >
                 <Settings className="w-4 h-4" />
-                Ansicht anpassen
+                <span className="hidden xl:inline">Ansicht anpassen</span>
               </button>
               {showColumnConfig && (
                 <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-50 p-3 space-y-2">
@@ -280,11 +281,11 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
           </div>
         </div>
 
-        <div className="flex gap-4 min-w-max pb-4">
+        <div className="flex gap-3 md:gap-4 min-w-max pb-4">
           {applicationColumns.map(column => {
             const columnApps = filteredAppData.filter(a => a.status === column.id);
             return (
-              <div key={column.id} className="w-72 flex-shrink-0">
+              <div key={column.id} className="w-64 md:w-72 flex-shrink-0">
                 <div className="flex items-center gap-2 mb-3 px-1">
                   <div className={`w-2 h-2 rounded-full ${
                     column.color === 'blue' ? 'bg-blue-500' :
@@ -386,7 +387,15 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
 
       {/* Detail Panel */}
       {selectedApp && (
-        <div className="w-96 bg-white border-l border-gray-200 flex flex-col overflow-hidden animate-slide-in">
+        <>
+          {/* Mobile Overlay Backdrop */}
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setSelectedId(null)}
+          />
+
+          {/* Detail Panel - Full screen on mobile, side panel on desktop */}
+          <div className="fixed md:relative inset-0 md:inset-auto md:w-96 bg-white md:border-l border-gray-200 flex flex-col overflow-hidden animate-slide-in z-50">
           <div className="p-5 border-b border-gray-100 flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Antragsdetails</h3>
             <button 
@@ -542,6 +551,7 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* New Application Modal */}
@@ -568,7 +578,7 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
         }
       >
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Vorname</label>
               <input
@@ -596,7 +606,7 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
               <option>Grundschule Schortens</option>
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Straße & Hausnummer</label>
               <input
@@ -626,7 +636,13 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
 
       {/* Filter Panel */}
       {showFilter && (
-        <div className="fixed top-20 right-6 bg-white rounded-xl shadow-2xl border border-gray-200 p-5 w-80 z-50 animate-slide-in">
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-40"
+            onClick={() => setShowFilter(false)}
+          />
+          <div className="fixed top-20 right-3 md:right-6 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 md:p-5 w-[calc(100vw-24px)] max-w-sm md:w-80 z-50 animate-slide-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900">Filter</h3>
             <button onClick={() => setShowFilter(false)} className="text-gray-400 hover:text-gray-600">
@@ -679,6 +695,7 @@ export default function ApplicationsView({ openNewModal = false, onModalClose }:
             </div>
           </div>
         </div>
+        </>
       )}
 
       {/* Toast Notifications */}

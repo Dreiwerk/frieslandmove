@@ -47,14 +47,14 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
       />
 
       {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-4">
+      <div className="flex min-h-full items-end md:items-center justify-center p-0 md:p-4">
         <div
-          className={`relative w-full ${sizeClasses[size]} bg-white rounded-xl shadow-2xl transform transition-all`}
+          className={`relative w-full ${sizeClasses[size]} bg-white rounded-t-2xl md:rounded-xl shadow-2xl transform transition-all max-h-[90vh] md:max-h-[85vh] flex flex-col`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          <div className="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 flex-shrink-0">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
               className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -64,11 +64,11 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', f
           </div>
 
           {/* Content */}
-          <div className="p-5">{children}</div>
+          <div className="p-4 md:p-5 overflow-y-auto flex-1">{children}</div>
 
           {/* Footer */}
           {footer && (
-            <div className="flex items-center justify-end gap-3 p-5 border-t border-gray-200 bg-gray-50">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 p-4 md:p-5 border-t border-gray-200 bg-gray-50 flex-shrink-0">
               {footer}
             </div>
           )}
