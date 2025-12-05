@@ -15,6 +15,7 @@ declare global {
 interface UseLeafletMapOptions {
   center: Coordinates;
   zoom: number;
+  mode?: MapMode;
   onMapClick?: (coords: Coordinates) => void;
   onStopDragEnd?: (routeId: string, stopId: string, newCoords: Coordinates) => void;
 }
@@ -36,8 +37,21 @@ export function useLeafletMap(
   const polylinesRef = useRef<PolylineRefs>({});
   const unassignedMarkersRef = useRef<L.Marker[]>([]);
 
+  // Refs für aktuelle Werte (um Closure-Probleme zu vermeiden)
+  const modeRef = useRef<MapMode>(options.mode || 'view');
+  const onMapClickRef = useRef(options.onMapClick);
+
   const [isLoaded, setIsLoaded] = useState(false);
-  const [mode, setMode] = useState<MapMode>('view');
+  const [isMapReady, setIsMapReady] = useState(false);
+
+  // Update refs wenn sich Werte ändern
+  useEffect(() => {
+    modeRef.current = options.mode || 'view';
+  }, [options.mode]);
+
+  useEffect(() => {
+    onMapClickRef.current = options.onMapClick;
+  }, [options.onMapClick]);
 
   // Leaflet dynamisch laden
   useEffect(() => {
@@ -85,16 +99,18 @@ export function useLeafletMap(
       maxZoom: 19,
     }).addTo(map);
 
-    // Map Click Handler
+    // Map Click Handler - verwendet Refs für aktuelle Werte
     map.on('click', (e: L.LeafletMouseEvent) => {
-      if (mode === 'add' && options.onMapClick) {
-        options.onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      if (modeRef.current === 'add' && onMapClickRef.current) {
+        onMapClickRef.current({ lat: e.latlng.lat, lng: e.latlng.lng });
       }
     });
 
     mapRef.current = map;
+    setIsMapReady(true);
 
     return () => {
+      setIsMapReady(false);
       map.remove();
       mapRef.current = null;
     };
@@ -186,50 +202,105 @@ export function useLeafletMap(
     isActive: boolean,
     currentMode: MapMode
   ) => {
-    if (!mapRef.current || !window.L) return;
+    const map = mapRef.current;
+    if (!map || !window.L) return;
 
     const L = window.L;
-    const map = mapRef.current;
 
     // Alte Layer entfernen
     if (polylinesRef.current[route.id]) {
-      map.removeLayer(polylinesRef.current[route.id]);
+      try {
+        map.removeLayer(polylinesRef.current[route.id]);
+      } catch (e) {
+        // Layer bereits entfernt
+      }
+      delete polylinesRef.current[route.id];
     }
     if (markersRef.current[route.id]) {
-      markersRef.current[route.id].forEach(m => map.removeLayer(m));
+      markersRef.current[route.id].forEach(m => {
+        try {
+          map.removeLayer(m);
+        } catch (e) {
+          // Marker bereits entfernt
+        }
+      });
+      delete markersRef.current[route.id];
     }
 
     const markers: L.Marker[] = [];
 
-    // Koordinaten für Linie
-    const lineCoords: [number, number][] = route.routeGeometry
-      ? route.routeGeometry
-      : [
-          ...route.stops.map(s => [s.coords.lat, s.coords.lng] as [number, number]),
-          [route.school.coords.lat, route.school.coords.lng],
-        ];
+    // Validiere Route-Daten
+    if (!route.school?.coords?.lat || !route.school?.coords?.lng) {
+      console.warn('Route hat keine gültige Schule:', route.id);
+      return;
+    }
 
-    // Polyline zeichnen
-    const polyline = L.polyline(lineCoords, {
-      color: route.color,
-      weight: isActive ? 5 : 3,
-      opacity: isActive ? 1 : 0.6,
-      dashArray: isActive ? undefined : '5, 10',
-    }).addTo(map);
+    // Koordinaten für Linie - nur gültige Koordinaten
+    let lineCoords: [number, number][] = [];
 
-    polylinesRef.current[route.id] = polyline;
+    if (route.routeGeometry && route.routeGeometry.length > 0) {
+      // Filtere ungültige Koordinaten aus routeGeometry
+      lineCoords = route.routeGeometry.filter(
+        coord => Array.isArray(coord) &&
+                 coord.length === 2 &&
+                 typeof coord[0] === 'number' &&
+                 typeof coord[1] === 'number' &&
+                 !isNaN(coord[0]) &&
+                 !isNaN(coord[1])
+      );
+    }
+
+    // Fallback auf Stop-Koordinaten wenn keine routeGeometry
+    if (lineCoords.length === 0) {
+      const stopCoords = route.stops
+        .filter(s => s.coords?.lat && s.coords?.lng && !isNaN(s.coords.lat) && !isNaN(s.coords.lng))
+        .map(s => [s.coords.lat, s.coords.lng] as [number, number]);
+
+      lineCoords = [
+        ...stopCoords,
+        [route.school.coords.lat, route.school.coords.lng],
+      ];
+    }
+
+    // Nur zeichnen wenn mindestens 2 gültige Punkte vorhanden
+    if (lineCoords.length >= 2 && map) {
+      try {
+        const polyline = L.polyline(lineCoords, {
+          color: route.color,
+          weight: isActive ? 5 : 3,
+          opacity: isActive ? 1 : 0.6,
+          dashArray: isActive ? undefined : '5, 10',
+        }).addTo(map);
+
+        polylinesRef.current[route.id] = polyline;
+      } catch (e) {
+        console.warn('Polyline konnte nicht erstellt werden:', e);
+      }
+    }
 
     // Stop-Marker
     route.stops.forEach((stop, index) => {
+      // Validiere Stop-Koordinaten
+      if (!stop.coords?.lat || !stop.coords?.lng || isNaN(stop.coords.lat) || isNaN(stop.coords.lng)) {
+        console.warn('Stop hat keine gültigen Koordinaten:', stop.id);
+        return;
+      }
+
       const isDraggable = currentMode === 'edit' && isActive;
       const icon = createStopMarker(index, route.color, isDraggable);
 
-      if (!icon) return;
+      if (!icon || !map) return;
 
-      const marker = L.marker([stop.coords.lat, stop.coords.lng], {
-        icon,
-        draggable: isDraggable,
-      }).addTo(map);
+      let marker: L.Marker;
+      try {
+        marker = L.marker([stop.coords.lat, stop.coords.lng], {
+          icon,
+          draggable: isDraggable,
+        }).addTo(map);
+      } catch (e) {
+        console.warn('Marker konnte nicht erstellt werden:', e);
+        return;
+      }
 
       marker.bindPopup(`
         <div style="font-family: system-ui; min-width: 180px;">
@@ -264,11 +335,18 @@ export function useLeafletMap(
 
     // Schul-Marker
     const schoolIcon = createSchoolMarker();
-    if (schoolIcon) {
-      const schoolMarker = L.marker(
-        [route.school.coords.lat, route.school.coords.lng],
-        { icon: schoolIcon }
-      ).addTo(map);
+    if (schoolIcon && map) {
+      let schoolMarker: L.Marker;
+      try {
+        schoolMarker = L.marker(
+          [route.school.coords.lat, route.school.coords.lng],
+          { icon: schoolIcon }
+        ).addTo(map);
+      } catch (e) {
+        console.warn('Schul-Marker konnte nicht erstellt werden:', e);
+        markersRef.current[route.id] = markers;
+        return;
+      }
 
       schoolMarker.bindPopup(`
         <div style="font-family: system-ui; min-width: 180px;">
@@ -294,22 +372,40 @@ export function useLeafletMap(
   const renderUnassignedStudents = useCallback((
     students: Array<{ id: string; name: string; address: string; coords: Coordinates; specialNeeds?: { wheelchair?: boolean } }>
   ) => {
-    if (!mapRef.current || !window.L) return;
+    const map = mapRef.current;
+    if (!map || !window.L) return;
 
     const L = window.L;
-    const map = mapRef.current;
 
     // Alte Marker entfernen
-    unassignedMarkersRef.current.forEach(m => map.removeLayer(m));
+    unassignedMarkersRef.current.forEach(m => {
+      try {
+        map.removeLayer(m);
+      } catch (e) {
+        // Marker bereits entfernt
+      }
+    });
     unassignedMarkersRef.current = [];
 
     students.forEach(student => {
-      const icon = createStudentMarker(student.specialNeeds?.wheelchair);
-      if (!icon) return;
+      // Validiere Koordinaten
+      if (!student.coords?.lat || !student.coords?.lng ||
+          isNaN(student.coords.lat) || isNaN(student.coords.lng)) {
+        return;
+      }
 
-      const marker = L.marker([student.coords.lat, student.coords.lng], {
-        icon,
-      }).addTo(map);
+      const icon = createStudentMarker(student.specialNeeds?.wheelchair);
+      if (!icon || !map) return;
+
+      let marker: L.Marker;
+      try {
+        marker = L.marker([student.coords.lat, student.coords.lng], {
+          icon,
+        }).addTo(map);
+      } catch (e) {
+        console.warn('Student-Marker konnte nicht erstellt werden:', e);
+        return;
+      }
 
       marker.bindPopup(`
         <div style="font-family: system-ui; min-width: 180px;">
@@ -343,12 +439,23 @@ export function useLeafletMap(
     const allCoords: [number, number][] = [];
 
     routes.forEach(route => {
-      route.stops.forEach(s => allCoords.push([s.coords.lat, s.coords.lng]));
-      allCoords.push([route.school.coords.lat, route.school.coords.lng]);
+      route.stops.forEach(s => {
+        if (s.coords?.lat && s.coords?.lng && !isNaN(s.coords.lat) && !isNaN(s.coords.lng)) {
+          allCoords.push([s.coords.lat, s.coords.lng]);
+        }
+      });
+      if (route.school?.coords?.lat && route.school?.coords?.lng &&
+          !isNaN(route.school.coords.lat) && !isNaN(route.school.coords.lng)) {
+        allCoords.push([route.school.coords.lat, route.school.coords.lng]);
+      }
     });
 
     if (allCoords.length > 0) {
-      mapRef.current.fitBounds(L.latLngBounds(allCoords), { padding: [50, 50] });
+      try {
+        mapRef.current.fitBounds(L.latLngBounds(allCoords), { padding: [50, 50] });
+      } catch (e) {
+        console.warn('fitBounds fehlgeschlagen:', e);
+      }
     }
   }, []);
 
@@ -356,12 +463,26 @@ export function useLeafletMap(
     if (!mapRef.current || !window.L) return;
 
     const L = window.L;
-    const coords: [number, number][] = [
-      ...route.stops.map(s => [s.coords.lat, s.coords.lng] as [number, number]),
-      [route.school.coords.lat, route.school.coords.lng],
-    ];
+    const coords: [number, number][] = [];
 
-    mapRef.current.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+    route.stops.forEach(s => {
+      if (s.coords?.lat && s.coords?.lng && !isNaN(s.coords.lat) && !isNaN(s.coords.lng)) {
+        coords.push([s.coords.lat, s.coords.lng]);
+      }
+    });
+
+    if (route.school?.coords?.lat && route.school?.coords?.lng &&
+        !isNaN(route.school.coords.lat) && !isNaN(route.school.coords.lng)) {
+      coords.push([route.school.coords.lat, route.school.coords.lng]);
+    }
+
+    if (coords.length > 0) {
+      try {
+        mapRef.current.fitBounds(L.latLngBounds(coords), { padding: [50, 50] });
+      } catch (e) {
+        console.warn('focusRoute fehlgeschlagen:', e);
+      }
+    }
   }, []);
 
   // Cursor ändern
@@ -373,9 +494,7 @@ export function useLeafletMap(
 
   return {
     map: mapRef.current,
-    isLoaded,
-    mode,
-    setMode,
+    isLoaded: isMapReady, // Exportiere isMapReady als isLoaded für Konsistenz
     renderRoute,
     renderUnassignedStudents,
     zoomIn,
